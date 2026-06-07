@@ -6,6 +6,10 @@
     "long_description": "CornerCheck helps fight-operations teams, matchmakers, and athletic commissions confirm whether a fighter is safe and cleared to compete. It checks curated, source-cited cross-jurisdiction medical suspension records, enforces Association of Ringside Physicians return-to-competition windows, surfaces injury mentions from your own Slack with permalink citations, and refuses to clear when fighter identity is ambiguous. Decision support only: a human always makes the final call, and every decision lands in a tamper-evident audit ledger."
   },
   "features": {
+    "app_home": {
+      "messages_tab_enabled": true,
+      "messages_tab_read_only_enabled": false
+    },
     "bot_user": {
       "display_name": "CornerCheck",
       "always_online": true
