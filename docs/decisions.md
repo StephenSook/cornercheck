@@ -25,7 +25,24 @@ One entry per spike verdict, frozen contract, or platform fact. Newest first wit
   `client.api_call("assistant.search.context", json={...})`.
 - Consequence for Stage 5: `search/rts.py` wraps the raw call behind our own typed client.
 
-### Spike B: RTS keyword search - verdict pending
+### 2026-06-07 - Spike B: RTS keyword search = WORKS
+
+- **action_token location (the build-critical unknown): `body.event.assistant_thread.action_token`**,
+  present on BOTH `assistant user_message` and `app_mention` events; 62-char ephemeral string,
+  fresh per event; `assistant_thread` object contains only the token on these events.
+- `assistant.search.context` (raw `api_call`, json body: query/limit/content_types/action_token)
+  returns `ok=true` + real hits with rich metadata (`author_name`, `author_user_id`, `team_id`,
+  `channel_id`, `channel_name`, `message_ts`, `content`).
+- **Indexing lag is real: ~1-3 minutes.** Searches fired <1s after posting found 0 hits; the same
+  query minutes later found 4. NOT a bot-author filter: bot-posted seeds ARE returned.
+  Consequence: `seed_demo.py` posts seeds well before demo time; runbook gets a >=5 min buffer.
+- `assistant.search.info` on this sandbox: `{"ok": true, "is_ai_search_enabled": true}`.
+  AI search is ON: semantic mode may be available here (upside vs research expectation of
+  keyword-only). Test semantic explicitly during Stage 5; keyword remains the designed floor.
+- Intermittent `invalid_action_token` observed once on a later app_mention despite a
+  fresh-extracted token (suspect single-use/short TTL or event redelivery). Stage 5 `rts.py`
+  must degrade gracefully on token rejection (cached/fallback result + retry guidance), never crash.
+- Fallback (conversations.history lexicon scan) NOT needed; primary path adopted.
 
 ### Spike C: Agent SDK stream -> say_stream - verdict pending
 

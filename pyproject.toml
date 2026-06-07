@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 license = "Apache-2.0"
 dependencies = [
+    "claude-agent-sdk>=0.2.93",
     "pydantic>=2.7",
     "pydantic-settings>=2.2",
     "slack-bolt>=1.21",
