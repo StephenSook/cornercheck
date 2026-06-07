@@ -1,0 +1,63 @@
+{
+  "display_information": {
+    "name": "CornerCheck",
+    "description": "Fail-closed fighter-clearance agent: suspensions, return windows, audit trail.",
+    "background_color": "#101828",
+    "long_description": "CornerCheck helps fight-operations teams, matchmakers, and athletic commissions confirm whether a fighter is safe and cleared to compete. It checks curated, source-cited cross-jurisdiction medical suspension records, enforces Association of Ringside Physicians return-to-competition windows, surfaces injury mentions from your own Slack with permalink citations, and refuses to clear when fighter identity is ambiguous. Decision support only: a human always makes the final call, and every decision lands in a tamper-evident audit ledger."
+  },
+  "features": {
+    "bot_user": {
+      "display_name": "CornerCheck",
+      "always_online": true
+    },
+    "assistant_view": {
+      "assistant_description": "Ask whether a fighter is cleared to compete. I check suspensions, return windows, and your team's own injury chatter, and I refuse to clear ambiguous identities.",
+      "suggested_prompts": [
+        {
+          "title": "Check a fighter",
+          "message": "Is Dragan Petrovic cleared for Saturday's card in Texas?"
+        },
+        {
+          "title": "Why was someone refused?",
+          "message": "Show me the audit trail for the last clearance decision."
+        },
+        {
+          "title": "Scan for injury chatter",
+          "message": "Any injury mentions about our roster this week?"
+        }
+      ]
+    }
+  },
+  "oauth_config": {
+    "scopes": {
+      "bot": [
+        "assistant:write",
+        "app_mentions:read",
+        "chat:write",
+        "im:history",
+        "im:read",
+        "im:write",
+        "channels:history",
+        "channels:read",
+        "search:read.public",
+        "users:read"
+      ]
+    }
+  },
+  "settings": {
+    "event_subscriptions": {
+      "bot_events": [
+        "app_mention",
+        "assistant_thread_started",
+        "assistant_thread_context_changed",
+        "message.im"
+      ]
+    },
+    "interactivity": {
+      "is_enabled": true
+    },
+    "org_deploy_enabled": false,
+    "socket_mode_enabled": true,
+    "token_rotation_enabled": false
+  }
+}
