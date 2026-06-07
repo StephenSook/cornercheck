@@ -5,8 +5,8 @@ from cornercheck.config import Settings
 
 def test_model_defaults_are_pinned() -> None:
     fields = Settings.model_fields
-    assert fields["cornercheck_model"].default == "claude-sonnet-4-6"
-    assert fields["cornercheck_model_fallback"].default == "claude-haiku-4-5-20251001"
+    assert fields["cornercheck_model"].default == "claude-opus-4-8"
+    assert fields["cornercheck_model_fallback"].default == "claude-sonnet-4-6"
 
 
 def test_demo_fallback_defaults_off() -> None:
