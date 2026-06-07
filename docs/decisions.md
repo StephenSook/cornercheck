@@ -62,8 +62,17 @@ One entry per spike verdict, frozen contract, or platform fact. Newest first wit
   middleware); `ChatStream.stop(blocks=...)` can attach Block Kit at stream end - that is the
   verdict-card delivery mechanism for Stage 5.
 
-### 2026-06-07 - Spike D: Data Table ("table") block - API accepted, render confirmation pending
+### 2026-06-07 - Spike D: Data Table ("table") block = WORKS
 
 - `chat.postMessage` with `type: "table"` block (rows of raw_text cells + column_settings)
-  returned ok=true. Block schema per live docs: max 100 rows x 20 cells,
-  raw_text/raw_number/rich_text cells, column align/is_wrapped.
+  returned ok=true AND renders as a real table on desktop web AND iOS mobile
+  (verified by Stephen, screenshots in session). Columns, alignment, wrapping all honored.
+- Block schema per live docs: max 100 rows x 20 cells, raw_text/raw_number/rich_text cells,
+  column align/is_wrapped. Adopted as the audit-ledger view for Stage 5;
+  section-fields fallback not needed.
+
+### STAGE 1 GATE: PASSED 2026-06-07
+
+All four spikes WORKS on their primary paths; zero pre-chosen fallbacks adopted.
+Completed in one evening vs the planned Jun 8-12 window. Stage 2 (data foundation +
+hash-chain ledger) unblocked ~4 days ahead of schedule.
