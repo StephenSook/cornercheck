@@ -44,6 +44,26 @@ One entry per spike verdict, frozen contract, or platform fact. Newest first wit
   must degrade gracefully on token rejection (cached/fallback result + retry guidance), never crash.
 - Fallback (conversations.history lexicon scan) NOT needed; primary path adopted.
 
-### Spike C: Agent SDK stream -> say_stream - verdict pending
+### 2026-06-07 - Spike C: Claude Agent SDK -> say_stream = WORKS
 
-### Spike D: Data Table block - verdict pending
+- Full brain pattern proven live in the sandbox: SDK session (claude-agent-sdk 0.2.93,
+  model claude-opus-4-8) + in-process SDK-MCP tool + token streaming into the agent pane via
+  `say_stream()` ChatStream (`append`/`stop`). Tool call rendered as a visible thinking line;
+  final answer derived strictly from tool data.
+- **The SDK ships a BUNDLED Claude Code CLI** (`claude_agent_sdk/_bundled/claude`): the Render
+  worker needs NO separate CLI install. Deploy concern eliminated.
+- Cost/latency on opus: $0.7298 for the query; 13.8s total, ~11s of it cold CLI boot.
+  **Stage 4 design: persistent `ClaudeSDKClient` session per worker, never per-message
+  `query()` cold boots.** Budget note: ~$0.73/verdict on opus is fine inside the
+  $150-200 ceiling but smoke runs should count it.
+- SDK defers MCP tools: the agent called ToolSearch to load `mcp__spike__lookup_fighter`
+  before using it (one extra turn). Acceptable; revisit preloading in Stage 4.
+- `say_stream` is injected via `context["say_stream"]` (AttachingConversationKwargs
+  middleware); `ChatStream.stop(blocks=...)` can attach Block Kit at stream end - that is the
+  verdict-card delivery mechanism for Stage 5.
+
+### 2026-06-07 - Spike D: Data Table ("table") block - API accepted, render confirmation pending
+
+- `chat.postMessage` with `type: "table"` block (rows of raw_text cells + column_settings)
+  returned ok=true. Block schema per live docs: max 100 rows x 20 cells,
+  raw_text/raw_number/rich_text cells, column align/is_wrapped.
