@@ -15,8 +15,8 @@ class Settings(BaseSettings):
     slack_signing_secret: str = ""
 
     anthropic_api_key: str = ""
-    cornercheck_model: str = "claude-sonnet-4-6"
-    cornercheck_model_fallback: str = "claude-haiku-4-5-20251001"
+    cornercheck_model: str = "claude-opus-4-8"
+    cornercheck_model_fallback: str = "claude-sonnet-4-6"
 
     database_url: str = "postgresql://cornercheck:cornercheck@localhost:5432/cornercheck"
     cornercheck_ledger_hmac_key: str = ""
