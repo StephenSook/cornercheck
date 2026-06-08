@@ -66,6 +66,13 @@ class Suspension:
 def suspension_interval(s: Suspension) -> P.Interval:
     if s.indefinite or s.end_date is None:
         return P.closedopen(s.start_date, P.inf)
+    if s.end_date < s.start_date:
+        # Malformed range (end before start). P.closed(start, end) would be EMPTY, so the
+        # fighter would never be active and silently CLEAR: a fail-OPEN hole on a corrupt or
+        # date-swapped row (surfaced by the Z3 refinement proof). Fail closed instead: treat
+        # it as an open-ended suspension from start, blocking the fighter until a human fixes
+        # the record. Wrong "cleared" can be fatal; wrong "blocked" costs a phone call.
+        return P.closedopen(s.start_date, P.inf)
     return P.closed(s.start_date, s.end_date)
 
 
