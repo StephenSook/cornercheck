@@ -1,0 +1,80 @@
+"""The deterministic clearance pipeline: Retrieve -> Disambiguate -> Clear.
+
+This drives the Slack card. The LLM narrates around it; it never overrides it.
+Fail closed: ambiguity or no-match never reaches the rule engine.
+"""
+
+from datetime import date
+
+from cornercheck.brain.schemas import ClearanceVerdict, from_resolution, from_rule_verdict
+from cornercheck.db.queries import evaluate_fighter_clearance, get_fighter
+from cornercheck.er.live_match import resolve
+from cornercheck.ledger.store import append_entry
+from cornercheck.session.state import SESSION_STORE
+
+
+def start_clearance(
+    thread_key: str,
+    query: str,
+    on_date: date | None = None,
+    target_jurisdiction: str | None = None,
+) -> ClearanceVerdict:
+    """Resolve the name. Unique high-confidence match proceeds straight to the verdict;
+    anything else returns the fail-closed disambiguation/refusal card data."""
+    d = on_date or date.today()
+    r = resolve(query)
+    if r.status == "CONFIRMED":
+        c = r.candidates[0]
+        SESSION_STORE.set_candidates(thread_key, {c.fighter_id: c.full_name})
+        if not SESSION_STORE.confirm(thread_key, c.fighter_id):
+            # State changed under us (concurrent reset): fail closed to disambiguation
+            # rather than write anything. Never an assert: gates must survive -O.
+            return from_resolution(query, d, r)
+        return _verdict_for(thread_key, query, c.fighter_id, d, target_jurisdiction)
+    if r.status == "AMBIGUOUS":
+        SESSION_STORE.set_candidates(thread_key, {c.fighter_id: c.full_name for c in r.candidates})
+    else:  # NOT_FOUND: terminal refusal, no pick is awaited
+        SESSION_STORE.reset(thread_key)
+    return from_resolution(query, d, r)
+
+
+def confirm_candidate(
+    thread_key: str,
+    fighter_id: str,
+    query: str = "",
+    on_date: date | None = None,
+    target_jurisdiction: str | None = None,
+) -> ClearanceVerdict | None:
+    """Human picked a candidate (Block Kit action). Returns None when the pick is not a
+    candidate this thread was shown: the gate holds even against a forged action."""
+    if not SESSION_STORE.confirm(thread_key, fighter_id):
+        return None
+    return _verdict_for(thread_key, query, fighter_id, on_date or date.today(), target_jurisdiction)
+
+
+def _verdict_for(
+    thread_key: str,
+    query: str,
+    fighter_id: str,
+    on_date: date,
+    target_jurisdiction: str | None,
+) -> ClearanceVerdict:
+    v = evaluate_fighter_clearance(fighter_id, on_date, target_jurisdiction)
+    SESSION_STORE.record_verdict(thread_key, v.decision)
+    fighter = get_fighter(fighter_id)
+    name = fighter.full_name if fighter else "unknown"
+    entry = append_entry(
+        "cornercheck-pipeline",
+        "clearance_decision",
+        {
+            "thread_key": thread_key,
+            "fighter_id": fighter_id,
+            "fighter_name": name,
+            "decision": v.decision,
+            "on_date": on_date.isoformat(),
+            "target_jurisdiction": target_jurisdiction,
+            "applied_rules": v.applied_rules,
+        },
+    )
+    SESSION_STORE.record_written(thread_key, entry.seq)
+    return from_rule_verdict(query, fighter_id, name, v, entry.seq)
