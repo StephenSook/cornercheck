@@ -2,6 +2,40 @@
 
 One entry per spike verdict, frozen contract, or platform fact. Newest first within each stage.
 
+## Stage 7
+
+### 2026-06-08 - Frontier layer: Z3 verification SHIPPED, and it caught a real fail-open bug
+
+- src/cornercheck/verification/z3_safety.py: Z3/SMT verification of the clearance engine.
+  NOT a tautology (an adversarial review caught a first draft that was): the engine's
+  interval-membership formula (mirrored from rules/engine.py suspension_interval) is proven
+  EQUIVALENT to an INDEPENDENTLY written safety spec (_spec_must_block: "started AND not
+  properly ended") over all integer dates/intervals. Two formulas, different reasoning, so
+  Z3 must solve the logic; any divergence yields a counterexample.
+- The proof FOUND A REAL FAIL-OPEN BUG: a suspension with end_date < start_date made
+  P.closed(start,end) empty, so the fighter was never active and silently CLEARED. The worst
+  direction for a fail-closed system. FIXED in engine.suspension_interval: malformed ranges
+  now fail closed (treated as open-ended from start, blocking until a human corrects the row).
+- Non-vacuity is itself tested: test_refinement_proof_is_NOT_vacuous monkeypatches a corrupted
+  engine_active and asserts Z3 returns a COUNTEREXAMPLE (a green proof under corruption would
+  be worthless). Plus teeth demos: the pre-fix malformed-range hole and a >=/> boundary mutation.
+- Hypothesis bridge binds the REAL Python evaluate() to the spec on random inputs INCLUDING
+  malformed ranges, so the all-inputs Z3 proof and the real code can't silently diverge.
+- Identity gate proven (no clearance without a confirmed fighter). 114 tests green.
+- Framing: neurosymbolic (Kautz Type 2) in README + submission. scripts/z3_proof_demo.py drives
+  the "prove equivalence -> corrupt the engine -> Z3 hands you the broken input" demo beat.
+- Adversarial review of the proof: codex-rescue was unavailable (ChatGPT account tier blocks
+  the codex model), substituted an independent silent-failure-hunter agent with all tools; it
+  ran a 184,500-case cross-check and found the vacuity + the end<start fail-open hole. Both fixed.
+
+### Stage 7 stretch items - ASSESSED, DEFERRED (logged, not silent)
+
+- Conformal prediction with reject option (MAPIE LAC + Chow's rule) on the ER banding:
+  deferred. High effort (needs a labeled calibration set of name-match pairs we don't have
+  cleanly), marginal value over the existing fail-closed banding (T_HIGH/T_LOW + identical-
+  name-always-disambiguate) plus the Z3 proof. Revisit only if time before submission.
+- Graph-ER connected components: deferred, same reasoning.
+
 ## Stage 1 spikes
 
 ### 2026-06-07 - Spike A: Bolt Assistant over Socket Mode = WORKS

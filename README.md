@@ -22,7 +22,11 @@ CornerCheck is decision support. A human always makes the final call, and every 
 - **Slack surface**: Bolt for Python, Assistant middleware, Socket Mode; Block Kit verdict cards, disambiguation picker, audit Data Table, App Home
 - **Agent brain**: Claude Agent SDK orchestrating one modular FastMCP server (ledger, rules, and search tool groups); a deterministic PreToolUse hook makes the fail-closed guarantee code, not a model decision
 - **Computational core**: probabilistic entity resolution (splink offline, jellyfish + pg_trgm live), a YAML decision-table rule engine, and an HMAC-SHA256 hash-chained Postgres audit ledger
-- **Verification**: pytest + Hypothesis property tests, a Z3 proof that no input clears a suspended or unconfirmed fighter, CI on every push, and live smoke tests against the deployed instance
+- **Verification**: pytest + Hypothesis property tests, and **Z3 machine-checked verification** that the engine's clearance logic is equivalent to an independently-written safety specification over the infinite space of all dates and suspension intervals, no finite test suite can cover that. The verification is not a tautology (an in-suite mutation test proves it catches engine corruption), and it earned its keep: it surfaced a real fail-open bug, a malformed `end < start` date range that silently cleared a suspended fighter, now fixed to fail closed. CI on every push; live smoke tests against the deployed instance.
+
+CornerCheck is a **neurosymbolic system** in Kautz's Type 2 sense: the LLM perceives natural language and orchestrates tools, but the clearance decision itself comes from a deterministic symbolic core (rule engine + entity resolution) whose safety invariant is formally verified. The model proposes; the proven symbolic core disposes. That separation is what lets a fail-closed guarantee be code, not a prompt.
+
+Run the proof yourself: `uv run python scripts/z3_proof_demo.py`. It proves the invariant, then deletes a safety guard and watches Z3 produce the exact fighter the broken logic would wrongly clear.
 
 Full diagram: `docs/architecture.md` (in progress).
 
