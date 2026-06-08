@@ -64,14 +64,24 @@ _LANDING = """<!doctype html>
 
 
 def _chain_status() -> dict[str, Any]:
-    """Best-effort: never let a DB hiccup take down the landing page."""
-    try:
-        from cornercheck.ledger.verify import verify_chain
+    """Best-effort + time-bounded: never let a slow/absent DB hang the landing page."""
+    result: dict[str, Any] = {"ok": None, "detail": "checking..."}
 
-        r = verify_chain()
-        return {"ok": r.ok, "checked": r.checked, "detail": r.detail}
-    except Exception as exc:
-        return {"ok": None, "detail": f"chain status unavailable: {exc}"}
+    def check() -> None:
+        try:
+            from cornercheck.ledger.verify import verify_chain
+
+            r = verify_chain()
+            result.update({"ok": r.ok, "checked": r.checked, "detail": r.detail})
+        except Exception as exc:
+            result.update({"ok": None, "detail": f"chain status unavailable: {exc}"})
+
+    t = threading.Thread(target=check, daemon=True)
+    t.start()
+    t.join(timeout=3.0)
+    if t.is_alive():
+        return {"ok": None, "detail": "chain status check timed out"}
+    return result
 
 
 def _render_landing() -> bytes:
