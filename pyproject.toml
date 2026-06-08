@@ -17,6 +17,7 @@ dependencies = [
     "pyyaml>=6.0.3",
     "slack-bolt>=1.21",
     "slack-sdk>=3.33",
+    "z3-solver>=4.16.0.0",
 ]
 
 [dependency-groups]
@@ -64,5 +65,5 @@ warn_unused_ignores = true
 warn_redundant_casts = true
 
 [[tool.mypy.overrides]]
-module = ["portion", "portion.*", "jellyfish"]
+module = ["portion", "portion.*", "jellyfish", "z3", "z3.*"]
 ignore_missing_imports = true
