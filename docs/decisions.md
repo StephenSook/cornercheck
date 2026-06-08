@@ -71,6 +71,63 @@ One entry per spike verdict, frozen contract, or platform fact. Newest first wit
   column align/is_wrapped. Adopted as the audit-ledger view for Stage 5;
   section-fields fallback not needed.
 
+## Stage 4
+
+### 2026-06-07 - FROZEN CONTRACTS (Stage 5 builds against these; changes require a new entry)
+
+MCP server: ONE FastMCP stdio server named `cornercheck`
+(`python -m cornercheck.mcp_server.server`). Tool surface (7 of max 12):
+
+| Tool | Args | Returns |
+|---|---|---|
+| er_resolve_fighter | query | {status: CONFIRMED/AMBIGUOUS/NOT_FOUND, note, candidates[{fighter_id, full_name, weight_class, record, sport, jurisdiction, score}]} |
+| er_fighter_details | fighter_id | {fighter{...}, suspensions[{type,start,end,indefinite,jurisdiction,reason,source_url}]} |
+| rules_evaluate_clearance | fighter_id, on_date?, target_jurisdiction? | {decision, on_date, active[], applied_rules[], consultation_note} |
+| rules_outcome_window | outcome(TKO/KO/KO_LOC), cause?, sparring? | {days, applied_rules[]} |
+| ledger_record_clearance | thread_key, fighter_id, decision, on_date?, target_jurisdiction?, actor | {recorded, seq?, hash?, refusal_reason?} |
+| ledger_recent_entries | limit=10 | {entries[...]} |
+| ledger_verify_chain | - | {ok, checked, first_bad_seq, detail} |
+
+Search/RTS is NOT an MCP tool: the Bolt layer (Stage 5) runs the RTS scan itself and
+injects results as spotlighted untrusted data in the prompt. Keeps the action_token out
+of LLM-visible space and untrusted content out of the tool-result channel (report 17).
+
+**Fail-closed = three independent locks:**
+1. IN-TOOL: ledger_record_clearance re-runs the rule engine server-side; a decision that
+   contradicts the engine is refused AND the denied attempt is itself ledgered
+   (action=clearance_write_denied: the attack becomes audit evidence).
+2. PRETOOLUSE HOOK: denies ledger_record_clearance unless the SessionStore shows the
+   thread confirmed this exact fighter_id AND the engine verdict recorded for that thread
+   matches the decision being written.
+3. SCHEMA: brain output is a Pydantic ClearanceVerdict; the Slack card renders from the
+   deterministic pipeline result, never from LLM prose.
+
+Brain: ONE persistent ClaudeSDKClient (bundled CLI subprocess), per-Slack-thread
+`session_id`, asyncio loop in a daemon thread with a sync `ask()` facade for Bolt.
+Deterministic pipeline (er.resolve -> SessionStore -> rules.evaluate -> ledger.append)
+drives the clearance card; the agent narrates and handles free-form Q&A via the tools.
+
+### 2026-06-07 - Stage 4 SHIPPED: results + adversarial-review hardening
+
+- Live smoke (twice, pre and post hardening): agent loads the real stdio MCP server,
+  calls er_resolve + rules_evaluate live, narrates with verbatim source URL + 6306(b)
+  note, and says "not my judgment, engine's". Adversarial override attempt REFUSED with
+  a correct explanation of the guards. ~$0.9/turn opus; 26s cold, 6s warm.
+- Forced adversarial review (code-reviewer + silent-failure-hunter, both verified
+  findings against installed SDK source) converged on one critical: the SDK client's
+  receive stream is a single shared queue with NO per-session demux, so concurrent or
+  timed-out asks bleed responses across threads. FIXED: whole query+receive span
+  serialized by an asyncio.Lock created on the loop thread; timeout cancels the
+  coroutine and poisons the client (next ask rebuilds it).
+- Also fixed from review: pipeline gate assert replaced with explicit fail-closed check
+  (asserts vanish under -O); hook gate denies malformed payloads instead of passing;
+  SessionStore.snapshot() so the gate never reads torn state; garbage fighter_id/date on
+  the write tool returns a structured refusal that is ITSELF ledgered (probes leave a
+  trace); denial-ledger failures surface as audit_warning instead of vanishing; every
+  tool wrapped in a typed ERROR envelope that can never read as a clearance (system
+  prompt rule 7 forbids inferring anything from ERROR).
+- 74 tests green including regression tests pinning every review finding.
+
 ## Stage 3
 
 ### 2026-06-07 - Rule engine + entity resolution = SHIPPED, live-smoked on real data
