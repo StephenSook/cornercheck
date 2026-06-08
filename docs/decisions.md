@@ -71,6 +71,29 @@ One entry per spike verdict, frozen contract, or platform fact. Newest first wit
   column align/is_wrapped. Adopted as the audit-ledger view for Stage 5;
   section-fields fallback not needed.
 
+## Stage 3
+
+### 2026-06-07 - Rule engine + entity resolution = SHIPPED, live-smoked on real data
+
+- Rules are DATA: arp_base.yaml (ABC minimums TKO=30/KO=60; ARP KO_LOC=90) +
+  state_overlays.yaml (ABC BSI head-shot overlay) + sparring overlay explicitly attributed
+  to CornerCheck/ARP guidance, never to the ABC. Longest-rule-wins. A test proves a YAML
+  override changes outcomes with zero Python edits.
+- portion interval algebra for suspension windows (indefinite = right-open to infinity;
+  overlaps union). Cross-jurisdiction active suspension attaches the 15 U.S.C. §6306(b)
+  consultation note (enforce-the-law framing).
+- ER: pg_trgm high-recall retrieve + Jaro-Winkler re-score + banding
+  (T_HIGH=0.95, MARGIN=0.04, T_LOW=0.82; identical normalized names ALWAYS disambiguate;
+  below T_LOW refuses). splink offline training deferred per plan slip clause; golden
+  fixtures pin behavior; revisit in Stage 7.
+- Live real-data smoke (2026-06-07): Bruno Silva -> AMBIGUOUS with BOTH real UFC Bruno
+  Silvas at score 1.00; Dvalishvili -> CONFIRMED; dos Santos -> DO_NOT_CLEAR (indefinite
+  CSAC, §6306 note vs Texas, source cited); Chavez Jr -> CLEAR today but DO_NOT_CLEAR
+  back-dated to 2012-12-01 (time-travel demo beat); Diaz -> DO_NOT_CLEAR until 2026-11-12.
+- 48 tests green: rule matrix, Hypothesis "CLEAR iff no active suspension" +
+  "every blocking suspension is cited", ER banding goldens, live-Postgres ER fixtures
+  (ZZ-Test throwaway fighters work on empty CI DB and seeded local DB alike).
+
 ## Stage 2
 
 ### 2026-06-07 - Seed data: dataset + 15 verified suspension cases
