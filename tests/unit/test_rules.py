@@ -8,7 +8,8 @@ from pathlib import Path
 import pytest
 
 from cornercheck.rules.engine import (
-    CONSULTATION_NOTE,
+    CONSULTATION_NOTE_BOXING,
+    CONSULTATION_NOTE_MMA,
     Rules,
     Suspension,
     evaluate,
@@ -95,14 +96,20 @@ def test_boundary_dates_inclusive() -> None:
     assert evaluate([s], date(2026, 7, 16)).decision == "CLEAR"
 
 
-def test_cross_jurisdiction_carries_6306_consultation_note() -> None:
-    v = evaluate(
+def test_cross_jurisdiction_note_is_sport_aware() -> None:
+    args = (
         [_susp("2026-05-16", "2026-11-12", jurisdiction="Nevada")],
         date(2026, 6, 7),
-        target_jurisdiction="Texas",
     )
-    assert v.decision == "DO_NOT_CLEAR"
-    assert v.consultation_note == CONSULTATION_NOTE
+    # MMA (default): no federal equivalent framing.
+    mma = evaluate(*args, target_jurisdiction="Texas")
+    assert mma.decision == "DO_NOT_CLEAR"
+    assert mma.consultation_note == CONSULTATION_NOTE_MMA
+    assert "no federal equivalent" in mma.consultation_note
+    # Boxing: §6306(b) is binding.
+    boxing = evaluate(*args, target_jurisdiction="Texas", sport="boxing")
+    assert boxing.consultation_note == CONSULTATION_NOTE_BOXING
+    assert "for professional boxing" in boxing.consultation_note
 
 
 def test_same_jurisdiction_no_consultation_note() -> None:
