@@ -41,6 +41,11 @@ def main() -> None:
         from cornercheck.app.web import start_health_server
 
         start_health_server(int(port))
+        # Self-provision the deployed DB on first boot (after the port is bound so the
+        # Render health check passes even while seeding runs).
+        from cornercheck.bootstrap import bootstrap_db
+
+        bootstrap_db()
     logging.getLogger("cornercheck").info(
         "CornerCheck starting (Socket Mode, model=%s)", settings.cornercheck_model
     )
