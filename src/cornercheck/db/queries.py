@@ -56,4 +56,6 @@ def get_suspensions(fighter_id: str) -> list[Suspension]:
 def evaluate_fighter_clearance(
     fighter_id: str, on_date: date, target_jurisdiction: str | None = None
 ) -> RuleVerdict:
-    return evaluate(get_suspensions(fighter_id), on_date, target_jurisdiction)
+    fighter = get_fighter(fighter_id)
+    sport = fighter.sport if fighter else "mma"
+    return evaluate(get_suspensions(fighter_id), on_date, target_jurisdiction, sport)

@@ -111,14 +111,17 @@ def er_fighter_details(fighter_id: str) -> dict[str, Any]:
 @mcp.tool(
     description="THE clearance decision: deterministic rule engine over recorded"
     " suspensions. DO_NOT_CLEAR lists every active suspension with citations and, for"
-    " cross-jurisdiction holds, the 15 U.S.C. 6306(b) consultation note."
+    " cross-jurisdiction holds, a sport-aware consultation note (15 U.S.C. 6306(b) is"
+    " binding for boxing; MMA has no federal equivalent)."
 )
 @_safe_tool
 def rules_evaluate_clearance(
     fighter_id: str, on_date: str | None = None, target_jurisdiction: str | None = None
 ) -> dict[str, Any]:
     d = date.fromisoformat(on_date) if on_date else date.today()
-    v = evaluate(get_suspensions(fighter_id), d, target_jurisdiction)
+    fighter = get_fighter(fighter_id)
+    sport = fighter.sport if fighter else "mma"
+    v = evaluate(get_suspensions(fighter_id), d, target_jurisdiction, sport)
     return {
         "decision": v.decision,
         "on_date": v.on_date.isoformat(),

@@ -4,7 +4,8 @@ The LLM never decides clearance. This engine does, from data:
 - active-suspension check: a fighter with ANY suspension interval containing the target
   date is DO_NOT_CLEAR, with every active suspension cited (source_url included)
 - cross-jurisdiction note: when an active suspension comes from a different jurisdiction
-  than the target, the verdict carries the 15 U.S.C. §6306(b) consultation note
+  than the target, the verdict carries a sport-aware consultation note (15 U.S.C. §6306(b)
+  is binding for boxing; MMA has no federal equivalent, which is the gap this surfaces)
 - outcome windows: TKO/KO/KO_LOC minimum days come from arp_base.yaml with
   longest-rule-wins overlays from state_overlays.yaml
 """
@@ -21,11 +22,23 @@ TABLES_DIR = Path(__file__).parent / "decision_tables"
 
 Outcome = Literal["TKO", "KO", "KO_LOC"]
 
-CONSULTATION_NOTE = (
-    "15 U.S.C. §6306(b): before this fighter competes, the licensing commission must"
-    " consult the suspending commission. CornerCheck supports that step; it never"
-    " replaces it."
+# The 15 U.S.C. §6306(b) consult-first requirement is BOXING-only (Muhammad Ali Boxing
+# Reform Act). MMA has no federal equivalent, so the note is sport-aware: a binding citation
+# for boxing, and for MMA the gap CornerCheck closes by applying the same discipline.
+CONSULTATION_NOTE_BOXING = (
+    "15 U.S.C. §6306(b): for professional boxing, the licensing commission must consult the"
+    " suspending commission before this fighter competes. CornerCheck supports that step; it"
+    " never replaces it."
 )
+CONSULTATION_NOTE_MMA = (
+    "Different commission from the active suspension. Federal law (15 U.S.C. §6306(b)) requires"
+    " this consult-first step for professional boxing; MMA has no federal equivalent, so"
+    " CornerCheck applies the same discipline. It supports that consult; it never replaces it."
+)
+
+
+def consultation_note_for(sport: str) -> str:
+    return CONSULTATION_NOTE_BOXING if sport.lower() == "boxing" else CONSULTATION_NOTE_MMA
 
 
 @dataclass(frozen=True)
@@ -97,6 +110,7 @@ def evaluate(
     suspensions: list[Suspension],
     on_date: date,
     target_jurisdiction: str | None = None,
+    sport: str = "mma",
 ) -> RuleVerdict:
     """Fail-closed core: ANY active suspension on the date blocks clearance."""
     active = [s for s in suspensions if on_date in suspension_interval(s)]
@@ -106,7 +120,7 @@ def evaluate(
     if target_jurisdiction is not None and any(
         target_jurisdiction.lower() not in s.jurisdiction.lower() for s in active
     ):
-        note = CONSULTATION_NOTE
+        note = consultation_note_for(sport)
     return RuleVerdict(
         "DO_NOT_CLEAR",
         on_date,
