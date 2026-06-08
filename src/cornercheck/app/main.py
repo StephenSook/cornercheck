@@ -33,22 +33,33 @@ def build_app() -> App:
 def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
     settings = get_settings()
-    app = build_app()
-    # Bind the health/landing server BEFORE the blocking Socket Mode loop so Render sees an
-    # open port immediately. Only when $PORT is set (Render); local runs stay Socket-Mode-only.
+
+    # Bind the health/landing server FIRST so Render sees an open port immediately (only
+    # when $PORT is set; local runs stay Socket-Mode-only).
     port = os.environ.get("PORT")
     if port:
         from cornercheck.app.web import start_health_server
 
         start_health_server(int(port))
-        # Self-provision the deployed DB on first boot (after the port is bound so the
-        # Render health check passes even while seeding runs).
         from cornercheck.bootstrap import bootstrap_db
 
-        bootstrap_db()
-    logging.getLogger("cornercheck").info(
-        "CornerCheck starting (Socket Mode, model=%s)", settings.cornercheck_model
-    )
+        bootstrap_db()  # self-provision the deployed DB on first boot
+
+    # Degrade gracefully if Slack secrets aren't set yet: the landing URL stays up while the
+    # operator adds tokens in the dashboard, instead of crash-looping the deploy.
+    if not (settings.slack_bot_token and settings.slack_app_token):
+        log.warning(
+            "Slack tokens not set; running health/landing only. Add them to start the agent."
+        )
+        if port:
+            import time
+
+            while True:
+                time.sleep(3600)
+        return
+
+    app = build_app()
+    log.info("CornerCheck starting (Socket Mode, model=%s)", settings.cornercheck_model)
     SocketModeHandler(app, settings.slack_app_token).start()
 
 
