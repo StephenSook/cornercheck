@@ -1,6 +1,7 @@
-"""CornerCheck Slack app entrypoint (Socket Mode, no public URL needed)."""
+"""CornerCheck Slack app entrypoint (Socket Mode + a health/landing HTTP server)."""
 
 import logging
+import os
 
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
@@ -33,6 +34,13 @@ def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
     settings = get_settings()
     app = build_app()
+    # Bind the health/landing server BEFORE the blocking Socket Mode loop so Render sees an
+    # open port immediately. Only when $PORT is set (Render); local runs stay Socket-Mode-only.
+    port = os.environ.get("PORT")
+    if port:
+        from cornercheck.app.web import start_health_server
+
+        start_health_server(int(port))
     logging.getLogger("cornercheck").info(
         "CornerCheck starting (Socket Mode, model=%s)", settings.cornercheck_model
     )
