@@ -42,5 +42,6 @@ def append_entry(actor: str, action: str, payload: dict) -> LedgerEntry:
             " VALUES (%s, %s, %s, %s, %s) RETURNING seq, ts",
             (actor, action, Jsonb(payload), prev_hash, entry_hash),
         ).fetchone()
-        assert out is not None
+        if out is None:  # never an assert: this must survive python -O
+            raise RuntimeError("ledger INSERT returned no row; write not confirmed")
     return LedgerEntry(out[0], out[1], actor, action, payload, prev_hash, entry_hash)
