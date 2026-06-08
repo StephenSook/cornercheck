@@ -71,6 +71,34 @@ One entry per spike verdict, frozen contract, or platform fact. Newest first wit
   column align/is_wrapped. Adopted as the audit-ledger view for Stage 5;
   section-fields fallback not needed.
 
+## Stage 5
+
+### 2026-06-08 - Slack surface SHIPPED, all 4 beats verified live + adversarial-hardened
+
+- Live in the CornerCheck sandbox, all four demo beats confirmed by screenshot:
+  (1) Merab -> CLEAR card; (2) "Is Junior dos Santos cleared in Texas?" -> red DO NOT CLEAR
+  card with cited CSAC suspension + 6306 consultation note; (3) "Is Bruno Silva cleared?"
+  -> disambiguation card with 5 real candidates -> click Select -> inline verdict card
+  logged to the ledger; (4) View audit trail button. Plus the agentic brain answering
+  free-form with live source citation, and seeded ops conversations for the RTS beat.
+- Architecture: deterministic clearance path (parse -> pipeline -> card) is the floor,
+  no LLM dependency; the agentic brain is the flex for free-form/meta questions.
+- TWO live bugs found + fixed during testing: (a) Select did nothing because the
+  interactivity payload's thread_key doesn't share in-memory state -> confirm_candidate
+  is now self-contained (re-resolves the button's query, requires the picked fighter to be
+  a real candidate; still fail-closed); (b) action results posted as nested side-threads ->
+  now chat_postMessage to the assistant thread root so verdicts render inline.
+- Forced pre-merge adversarial review (code-reviewer + silent-failure-hunter, both verified
+  against vendored Bolt source) -> all findings fixed with regression tests:
+  - Bolt's default error handler only LOGS. A DB/ledger failure mid-clearance or mid-Select
+    would strand the user. Both handlers now post an explicit FAIL-CLOSED non-clearance on
+    any exception; a global app.error net catches the rest.
+  - Routing used substring matching ("how" in "Howard" misrouted real clearance Qs to the
+    brain). Now whole-word matching; "Is Howard/Scanlon/Whatley cleared?" routes to the card.
+  - Spotlight envelope could be escaped by untrusted workspace text containing the literal
+    closing tag. Now defanged (angle chars replaced); injection fence holds.
+- 104 tests green.
+
 ## Stage 4
 
 ### 2026-06-07 - FROZEN CONTRACTS (Stage 5 builds against these; changes require a new entry)

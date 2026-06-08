@@ -49,6 +49,8 @@ src = ["src", "tests"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
+# RUF001: the spotlight defang intentionally uses look-alike angle chars (security feature).
+ignore = ["RUF001"]
 
 [tool.mypy]
 python_version = "3.12"

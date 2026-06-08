@@ -45,8 +45,17 @@ def confirm_candidate(
     on_date: date | None = None,
     target_jurisdiction: str | None = None,
 ) -> ClearanceVerdict | None:
-    """Human picked a candidate (Block Kit action). Returns None when the pick is not a
-    candidate this thread was shown: the gate holds even against a forged action."""
+    """Human picked a candidate (Block Kit action). Self-contained and fail-closed: the
+    button carries the original query, so we RE-RESOLVE it and require the picked fighter
+    to be a genuine candidate of that query. This validates the pick deterministically
+    without depending on cross-event in-memory thread state (which the interactivity
+    payload's thread_key does not reliably share with the original message)."""
+    if query:
+        r = resolve(query)
+        candidate_ids = {c.fighter_id for c in r.candidates}
+        if fighter_id not in candidate_ids:
+            return None
+        SESSION_STORE.set_candidates(thread_key, {c.fighter_id: c.full_name for c in r.candidates})
     if not SESSION_STORE.confirm(thread_key, fighter_id):
         return None
     return _verdict_for(thread_key, query, fighter_id, on_date or date.today(), target_jurisdiction)
