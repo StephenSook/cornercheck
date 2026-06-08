@@ -28,7 +28,7 @@ CornerCheck is a **neurosymbolic system**: the LLM perceives natural language an
 
 Run the proof yourself: `uv run python scripts/z3_proof_demo.py`. It proves the invariant, then deletes a safety guard and watches Z3 produce the exact fighter the broken logic would wrongly clear.
 
-Full diagram: `docs/architecture.md` (in progress).
+Full diagram and the three fail-closed locks: `docs/architecture.md`.
 
 ## Status
 
