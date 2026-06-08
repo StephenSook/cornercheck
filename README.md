@@ -15,9 +15,9 @@ commissions confirm whether a combat-sports athlete is safe and cleared to compe
 the cross-jurisdiction medical suspension a team would otherwise miss, and **refuses to clear a
 fighter when it cannot be sure who they are.**
 
-Built for the Slack Agent Builder Challenge, **Slack Agent for Good** track. Live for judging at
-[cornercheck.onrender.com](https://cornercheck.onrender.com) (the agent itself runs inside Slack;
-that page confirms it is up).
+Built for the Slack Agent Builder Challenge, **Slack Agent for Good** track. Live for judging: the
+agent runs inside Slack, and [cornercheck.onrender.com](https://cornercheck.onrender.com) is its
+public health page.
 
 > CornerCheck is **decision support**. A human always makes the final call, and every decision
 > lands in a tamper-evident, hash-chained audit ledger.
@@ -47,6 +47,11 @@ consult-first discipline to where fight operations already coordinate: Slack.
 - **Refuses to clear an ambiguous identity.** Two pro fighters share a name; CornerCheck shows
   the candidates and asks a human to pick. A wrong "cleared" can be fatal; a wrong "refused"
   costs a phone call.
+
+<p align="center">
+  <img src="docs/demo-assets/verdict-card.png" alt="A DO NOT CLEAR verdict card in Slack: an active CSAC suspension with its source cited and the cross-jurisdiction consultation note" width="760"><br>
+  <em>A cross-jurisdiction block in Slack: the cited suspension, the consult-first note, and an audit reference.</em>
+</p>
 
 ## Architecture
 
@@ -117,6 +122,9 @@ uv run ruff check . && uv run mypy src tests
 
 To run the agent you need a Slack app (Socket Mode) and an Anthropic API key; copy `.env.example`
 to `.env` and fill it in, then `uv run python -m cornercheck.app.main`.
+
+Pre-commit hooks (ruff, gitleaks) run locally; on every push, CI re-runs lint, mypy, the full
+suite against a real Postgres service, a build, and a full-history secret scan.
 
 ## Project layout
 
