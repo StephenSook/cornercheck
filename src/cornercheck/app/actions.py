@@ -3,7 +3,7 @@
 import logging
 from datetime import date
 
-from slack_bolt import Ack, App, Say
+from slack_bolt import Ack, App
 from slack_sdk import WebClient
 
 from cornercheck.app.blocks.audit_table import build_audit_table, fallback_text
@@ -20,46 +20,72 @@ log = logging.getLogger("cornercheck.actions")
 
 def register_actions(app: App) -> None:
     @app.action("select_fighter")
-    def on_select_fighter(ack: Ack, body: dict, say: Say, client: WebClient) -> None:
+    def on_select_fighter(ack: Ack, body: dict, client: WebClient) -> None:
         ack()
         value = body["actions"][0]["value"]
         fighter_id, on_date_s, query = decode(value)
-        thread_key = _thread_key(body)
+        channel, thread_ts = _thread_coords(body)
+        thread_key = f"{channel}:{thread_ts}"
         on_date = date.fromisoformat(on_date_s) if on_date_s else None
-        # Re-derive the target jurisdiction from the original query text.
         from cornercheck.app.parse import parse_request
 
         target = parse_request(query).target_jurisdiction if query else None
         verdict = confirm_candidate(thread_key, fighter_id, query, on_date, target)
         if verdict is None:
-            say("That selection didn't match a candidate I offered. Please re-run the check.")
+            _reply(
+                client,
+                channel,
+                thread_ts,
+                "That selection didn't match a candidate I offered. Please re-run the check.",
+            )
             return
-        action_token = body.get("assistant", {}).get("thread", {}).get("action_token") or body.get(
-            "message", {}
-        ).get("metadata", {}).get("event_payload", {}).get("action_token")
+        action_token = _action_token(body)
         hits = (
             injury_scan(client, action_token, verdict.fighter_name or "")
             if verdict.fighter_name
             else []
         )
-        say(blocks=build_verdict_card(verdict, injury_hits=hits), text=verdict_fallback(verdict))
+        _reply(
+            client,
+            channel,
+            thread_ts,
+            verdict_fallback(verdict),
+            build_verdict_card(verdict, injury_hits=hits),
+        )
 
     @app.action("view_audit_trail")
-    def on_view_audit(ack: Ack, say: Say) -> None:
+    def on_view_audit(ack: Ack, body: dict, client: WebClient) -> None:
         ack()
-        entries = _recent_entries()
+        channel, thread_ts = _thread_coords(body)
         result = verify_chain()
-        say(
-            blocks=build_audit_table(entries, result.ok, result.detail),
-            text=fallback_text(result.ok),
+        _reply(
+            client,
+            channel,
+            thread_ts,
+            fallback_text(result.ok),
+            build_audit_table(_recent_entries(), result.ok, result.detail),
         )
 
 
-def _thread_key(body: dict) -> str:
+def _thread_coords(body: dict) -> tuple[str, str]:
+    """The assistant thread root, so replies render INLINE in the main chat (not a
+    nested side-thread). thread_ts identifies the assistant conversation."""
     container = body.get("container", {})
-    channel = container.get("channel_id", body.get("channel", {}).get("id", ""))
+    channel = container.get("channel_id") or body.get("channel", {}).get("id", "")
     thread_ts = container.get("thread_ts") or container.get("message_ts", "")
-    return f"{channel}:{thread_ts}"
+    return channel, thread_ts
+
+
+def _reply(
+    client: WebClient, channel: str, thread_ts: str, text: str, blocks: list[dict] | None = None
+) -> None:
+    client.chat_postMessage(channel=channel, thread_ts=thread_ts, text=text, blocks=blocks)
+
+
+def _action_token(body: dict) -> str | None:
+    return body.get("assistant", {}).get("thread", {}).get("action_token") or body.get(
+        "message", {}
+    ).get("metadata", {}).get("event_payload", {}).get("action_token")
 
 
 def _recent_entries() -> list[dict]:
