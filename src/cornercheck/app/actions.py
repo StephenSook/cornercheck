@@ -17,54 +17,72 @@ from cornercheck.search.rts import injury_scan
 
 log = logging.getLogger("cornercheck.actions")
 
+# A thrown error after ack() would silently do nothing (the spinner clears); on the
+# safety-critical confirm path we must instead post an explicit non-clearance.
+_FAIL_CLOSED = (
+    ":rotating_light: CornerCheck could not complete that. Treat as NOT cleared and re-run."
+)
+
 
 def register_actions(app: App) -> None:
     @app.action("select_fighter")
     def on_select_fighter(ack: Ack, body: dict, client: WebClient) -> None:
         ack()
-        value = body["actions"][0]["value"]
-        fighter_id, on_date_s, query = decode(value)
         channel, thread_ts = _thread_coords(body)
-        thread_key = f"{channel}:{thread_ts}"
-        on_date = date.fromisoformat(on_date_s) if on_date_s else None
-        from cornercheck.app.parse import parse_request
+        try:
+            value = body["actions"][0]["value"]
+            fighter_id, on_date_s, query = decode(value)
+            thread_key = f"{channel}:{thread_ts}"
+            on_date = date.fromisoformat(on_date_s) if on_date_s else None
+            from cornercheck.app.parse import parse_request
 
-        target = parse_request(query).target_jurisdiction if query else None
-        verdict = confirm_candidate(thread_key, fighter_id, query, on_date, target)
-        if verdict is None:
+            target = parse_request(query).target_jurisdiction if query else None
+            verdict = confirm_candidate(thread_key, fighter_id, query, on_date, target)
+            if verdict is None:
+                _reply(
+                    client,
+                    channel,
+                    thread_ts,
+                    "That selection didn't match a candidate I offered. Please re-run.",
+                )
+                return
+            hits = (
+                injury_scan(client, _action_token(body), verdict.fighter_name or "")
+                if verdict.fighter_name
+                else []
+            )
             _reply(
                 client,
                 channel,
                 thread_ts,
-                "That selection didn't match a candidate I offered. Please re-run the check.",
+                verdict_fallback(verdict),
+                build_verdict_card(verdict, injury_hits=hits),
             )
-            return
-        action_token = _action_token(body)
-        hits = (
-            injury_scan(client, action_token, verdict.fighter_name or "")
-            if verdict.fighter_name
-            else []
-        )
-        _reply(
-            client,
-            channel,
-            thread_ts,
-            verdict_fallback(verdict),
-            build_verdict_card(verdict, injury_hits=hits),
-        )
+        except Exception:
+            log.exception("select_fighter failed: %s", body.get("actions"))
+            _reply(client, channel, thread_ts, _FAIL_CLOSED)
 
     @app.action("view_audit_trail")
     def on_view_audit(ack: Ack, body: dict, client: WebClient) -> None:
         ack()
         channel, thread_ts = _thread_coords(body)
-        result = verify_chain()
-        _reply(
-            client,
-            channel,
-            thread_ts,
-            fallback_text(result.ok),
-            build_audit_table(_recent_entries(), result.ok, result.detail),
-        )
+        try:
+            result = verify_chain()
+            _reply(
+                client,
+                channel,
+                thread_ts,
+                fallback_text(result.ok),
+                build_audit_table(_recent_entries(), result.ok, result.detail),
+            )
+        except Exception:
+            log.exception("view_audit_trail failed")
+            _reply(
+                client,
+                channel,
+                thread_ts,
+                ":rotating_light: Could not read the audit ledger right now. Please retry.",
+            )
 
 
 def _thread_coords(body: dict) -> tuple[str, str]:

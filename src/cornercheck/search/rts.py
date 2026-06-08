@@ -49,7 +49,8 @@ def injury_scan(
             },
         )
     except Exception as exc:
-        log.info("RTS injury_scan failed (non-fatal): %s", exc)
+        # warning, not info: a persistent RTS outage would otherwise be invisible in prod.
+        log.warning("RTS injury_scan failed (non-fatal, no injury hits shown): %s", exc)
         return []
     data = result.data if isinstance(result.data, dict) else {}
     messages = (data.get("results") or {}).get("messages", [])
@@ -81,10 +82,17 @@ def _permalink(client: WebClient, channel_id: str, ts: str) -> str:
         return ""
 
 
+def _defang(text: str) -> str:
+    """Neutralize angle brackets so untrusted content cannot forge the closing delimiter
+    and escape the spotlight envelope (review finding F2). Replaces ASCII < > with the
+    single-pointing-angle look-alikes U+2039 / U+203A."""
+    return text.replace("<", "‹").replace(">", "›")
+
+
 def spotlight(hits: list[InjuryHit]) -> str:
     """Wrap untrusted workspace text for safe inclusion in an LLM prompt (report 17).
     The model is instructed to treat anything in this block as DATA, never instructions."""
     if not hits:
         return ""
-    lines = "\n".join(f"- [{h.author}] {h.snippet}" for h in hits)
+    lines = "\n".join(f"- [{_defang(h.author)}] {_defang(h.snippet)}" for h in hits)
     return f"<untrusted-slack-content>\n{lines}\n</untrusted-slack-content>"

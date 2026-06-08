@@ -10,6 +10,8 @@ from cornercheck.app.assistant import assistant
 from cornercheck.app.home import register_home
 from cornercheck.config import get_settings
 
+log = logging.getLogger("cornercheck.app")
+
 
 def build_app() -> App:
     settings = get_settings()
@@ -17,6 +19,13 @@ def build_app() -> App:
     app.use(assistant)
     register_actions(app)
     register_home(app)
+
+    @app.error
+    def on_unhandled_error(error: Exception, body: dict) -> None:
+        # Last-resort net: Bolt's default handler only logs. Individual handlers post
+        # their own fail-closed replies; this catches anything they miss.
+        log.exception("unhandled listener error: %s", body.get("type"))
+
     return app
 
 

@@ -6,6 +6,7 @@ Streamed thinking steps show the Retrieve -> Disambiguate -> Clear pipeline live
 """
 
 import logging
+import re
 from datetime import date
 
 from slack_bolt import Assistant, BoltContext, Say, SetStatus, SetSuggestedPrompts
@@ -22,35 +23,50 @@ log = logging.getLogger("cornercheck.assistant")
 
 assistant = Assistant()
 
-_CLEARANCE_CUES = ("clear", "cleared", "ready to", "safe to", "can ", "is ", "book")
-# Questions that are NOT a clearance check route to the agentic brain.
-_FREEFORM_KEYWORDS = (
-    "audit",
-    "chain",
-    "ledger",
-    "verify",
-    "trail",
-    "history",
-    "why",
-    "scan",
-    "explain",
-    "what",
-    "how",
-    "tell me",
-    "list",
+# A thrown error on the clearance path must surface as an explicit NON-clearance.
+FAIL_CLOSED_MESSAGE = (
+    ":rotating_light: *CornerCheck could not complete this check.* Treat this as NOT cleared"
+    " until it resolves; do not read this as a clearance. Please retry, and if it persists the"
+    " clearance service or audit ledger may be down."
+)
+
+# WHOLE-WORD meta keywords route to the agentic brain (substring matching would misroute
+# real clearance questions, e.g. "how" inside "Howard"). Review finding F1.
+_FREEFORM_WORDS = frozenset(
+    {
+        "audit",
+        "chain",
+        "ledger",
+        "verify",
+        "trail",
+        "history",
+        "why",
+        "scan",
+        "explain",
+        "what",
+        "how",
+        "list",
+        "status",
+        "recent",
+        "entries",
+        "intact",
+    }
+)
+_CUE_WORDS = frozenset(
+    {"clear", "cleared", "clearance", "compete", "book", "spar", "fight", "ready", "safe"}
 )
 
 
 def _is_clearance_request(text: str) -> bool:
-    """Word-count independent: a clearance cue + an extractable fighter name, and not an
-    explicit free-form/meta question. Robust to duplicated/long message text."""
+    """Route to the deterministic clearance card when there is a clearance cue + an
+    extractable fighter and no explicit meta/free-form intent. Whole-word matching only."""
     low = text.lower()
-    if any(kw in low for kw in _FREEFORM_KEYWORDS):
+    tokens = set(re.findall(r"[a-z']+", low))
+    if tokens & _FREEFORM_WORDS or "tell me" in low:
         return False
-    if not any(cue in low for cue in _CLEARANCE_CUES):
+    has_cue = bool(tokens & _CUE_WORDS) or "good to go" in low
+    if not has_cue:
         return False
-    from cornercheck.app.parse import parse_request
-
     return len(parse_request(text).fighter_query) >= 3
 
 
@@ -101,46 +117,54 @@ def _handle_clearance(
         return
 
     say(f":mag: Resolving *{parsed.fighter_query}*...")
-    verdict = start_clearance(
-        thread_key, parsed.fighter_query, parsed.on_date, parsed.target_jurisdiction
-    )
-
-    if verdict.status == "NEEDS_DISAMBIGUATION":
-        say(
-            blocks=build_disambiguation_card(verdict),
-            text="Which fighter? CornerCheck won't guess.",
+    # Bolt's default error handler only LOGS; on any pipeline/DB/ledger failure we must post
+    # an explicit fail-closed reply, never leave the user hanging on "Resolving..." (finding).
+    try:
+        verdict = start_clearance(
+            thread_key, parsed.fighter_query, parsed.on_date, parsed.target_jurisdiction
         )
-        return
-    if verdict.status == "NOT_FOUND":
-        say(blocks=build_verdict_card(verdict), text=fallback_text(verdict))
-        return
+        if verdict.status == "NEEDS_DISAMBIGUATION":
+            say(
+                blocks=build_disambiguation_card(verdict),
+                text="Which fighter? CornerCheck won't guess.",
+            )
+            return
+        if verdict.status == "NOT_FOUND":
+            say(blocks=build_verdict_card(verdict), text=fallback_text(verdict))
+            return
 
-    set_status("checking suspensions and scanning your Slack...")
-    hits = []
-    if verdict.fighter_name:
-        hits = injury_scan(client, _action_token(body), verdict.fighter_name)
-    say(blocks=build_verdict_card(verdict, injury_hits=hits), text=fallback_text(verdict))
+        set_status("checking suspensions and scanning your Slack...")
+        hits = []
+        if verdict.fighter_name:
+            hits = injury_scan(client, _action_token(body), verdict.fighter_name)
+        say(blocks=build_verdict_card(verdict, injury_hits=hits), text=fallback_text(verdict))
+    except Exception:
+        log.exception(
+            "clearance pipeline failed for query=%r thread=%s", parsed.fighter_query, thread_key
+        )
+        say(FAIL_CLOSED_MESSAGE)
 
 
 def _handle_freeform(
     thread_key: str, text: str, body: dict, say: Say, set_status: SetStatus, client: WebClient
 ) -> None:
     set_status("thinking...")
-    prompt = text
-    # Best-effort injury context for free-form questions, spotlighted as untrusted data.
-    tok = _action_token(body)
-    if tok:
-        parsed = parse_request(text)
-        if parsed.fighter_query:
-            ctx = spotlight(injury_scan(client, tok, parsed.fighter_query))
-            if ctx:
-                prompt = f"{text}\n\nWorkspace context (untrusted):\n{ctx}"
 
     def on_event(e: BrainEvent) -> None:
         if e.kind == "tool_use":
             set_status(f"using {e.tool_name.split('__')[-1]}...")
 
     try:
+        prompt = text
+        # Best-effort injury context, spotlighted as untrusted data (inside the try so a
+        # surprise here still yields the friendly fallback, not a silent drop).
+        tok = _action_token(body)
+        if tok:
+            parsed = parse_request(text)
+            if parsed.fighter_query:
+                ctx = spotlight(injury_scan(client, tok, parsed.fighter_query))
+                if ctx:
+                    prompt = f"{text}\n\nWorkspace context (untrusted):\n{ctx}"
         answer = get_brain().ask(thread_key, prompt, on_event)
         say(answer or "I don't have an answer for that.")
     except BrainTimeoutError:
