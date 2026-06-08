@@ -22,12 +22,36 @@ log = logging.getLogger("cornercheck.assistant")
 
 assistant = Assistant()
 
-_CLEARANCE_CUES = ("clear", "cleared", "cleared for", "ready to", "safe to", "can ", "is ")
+_CLEARANCE_CUES = ("clear", "cleared", "ready to", "safe to", "can ", "is ", "book")
+# Questions that are NOT a clearance check route to the agentic brain.
+_FREEFORM_KEYWORDS = (
+    "audit",
+    "chain",
+    "ledger",
+    "verify",
+    "trail",
+    "history",
+    "why",
+    "scan",
+    "explain",
+    "what",
+    "how",
+    "tell me",
+    "list",
+)
 
 
-def _looks_like_clearance(text: str) -> bool:
+def _is_clearance_request(text: str) -> bool:
+    """Word-count independent: a clearance cue + an extractable fighter name, and not an
+    explicit free-form/meta question. Robust to duplicated/long message text."""
     low = text.lower()
-    return any(cue in low for cue in _CLEARANCE_CUES) and len(low.split()) <= 16
+    if any(kw in low for kw in _FREEFORM_KEYWORDS):
+        return False
+    if not any(cue in low for cue in _CLEARANCE_CUES):
+        return False
+    from cornercheck.app.parse import parse_request
+
+    return len(parse_request(text).fighter_query) >= 3
 
 
 def _action_token(body: dict) -> str | None:
@@ -61,7 +85,7 @@ def on_user_message(
 ) -> None:
     text = (payload.get("text") or "").strip()
     thread_key = f"{payload.get('channel', '')}:{payload.get('thread_ts', payload.get('ts', ''))}"
-    if not _looks_like_clearance(text):
+    if not _is_clearance_request(text):
         _handle_freeform(thread_key, text, body, say, set_status, client)
         return
     _handle_clearance(thread_key, text, body, say, set_status, client)

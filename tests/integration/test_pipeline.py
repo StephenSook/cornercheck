@@ -48,13 +48,36 @@ def test_ambiguous_name_fails_closed_to_disambiguation(pipe_fixture: dict[str, s
 
 def test_forged_confirmation_is_rejected(pipe_fixture: dict[str, str]) -> None:
     start_clearance("th-forge", f"{PREFIX} Twin Fighter")
-    assert confirm_candidate("th-forge", "not-a-shown-candidate-id") is None
+    # A fighter_id not among the query's real candidates is rejected even with the query.
+    assert (
+        confirm_candidate(
+            "th-forge", "00000000-0000-0000-0000-000000000000", query=f"{PREFIX} Twin Fighter"
+        )
+        is None
+    )
+
+
+def test_confirmation_validates_against_the_query_not_stale_state(
+    pipe_fixture: dict[str, str],
+) -> None:
+    # Self-contained: a DIFFERENT thread_key still works because the button carries the
+    # query, which we re-resolve to validate membership (fixes the live Select bug).
+    v = confirm_candidate(
+        "a-totally-different-thread",
+        pipe_fixture["dup_b"],
+        query=f"{PREFIX} Twin Fighter",
+        target_jurisdiction="Texas",
+    )
+    assert v is not None and v.status == "DO_NOT_CLEAR"
 
 
 def test_human_pick_completes_clearance_with_citation(pipe_fixture: dict[str, str]) -> None:
     start_clearance("th-pick", f"{PREFIX} Twin Fighter")
     v = confirm_candidate(
-        "th-pick", pipe_fixture["dup_b"], query="Twin", target_jurisdiction="Texas"
+        "th-pick",
+        pipe_fixture["dup_b"],
+        query=f"{PREFIX} Twin Fighter",
+        target_jurisdiction="Texas",
     )
     assert v is not None
     assert v.status == "DO_NOT_CLEAR"
