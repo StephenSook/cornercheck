@@ -141,9 +141,9 @@ def verify_demo_mapping() -> None:
             "SELECT count(*) FROM fighters WHERE lower(full_name) = lower(%s)",
             (DEMO_AMBIGUOUS,),
         ).fetchone()
-        assert (
-            amb is not None and amb[0] >= 2
-        ), f"disambiguation demo needs >=2 fighters named {DEMO_AMBIGUOUS}, found {amb}"
+        assert amb is not None and amb[0] >= 2, (
+            f"disambiguation demo needs >=2 fighters named {DEMO_AMBIGUOUS}, found {amb}"
+        )
         print(f"  disambiguation demo: {DEMO_AMBIGUOUS} present x{amb[0]}")
         sus = conn.execute("SELECT count(*) FROM suspensions").fetchone()
         assert sus is not None and sus[0] >= 10, f"need >=10 suspensions, found {sus}"
