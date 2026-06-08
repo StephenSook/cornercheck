@@ -9,20 +9,20 @@ fail-closed guarantee be code, not a prompt.
 flowchart TD
     U["You, in Slack:<br/>'Is this fighter cleared to compete?'"]
 
-    subgraph NEURO["Neuro &mdash; perceives and orchestrates"]
+    subgraph NEURO["Neuro: perceives and orchestrates"]
       direction TB
-      S["Slack surfaces<br/>Assistant pane &middot; Block Kit cards &middot; Real-Time Search"]
+      S["Slack surfaces<br/>Assistant pane / Block Kit cards / Real-Time Search"]
       A["Claude Agent SDK brain"]
-      M["MCP server (FastMCP)<br/>resolve &middot; rules &middot; ledger tools"]
+      M["MCP server (FastMCP)<br/>resolve / rules / ledger tools"]
       G{{"fail-closed gate<br/>PreToolUse hook"}}
       S --> A --> M --> G
     end
 
-    subgraph SYM["Symbolic &mdash; decides, formally proven fail-closed"]
+    subgraph SYM["Symbolic: decides, formally proven fail-closed"]
       direction TB
       ER["Entity resolution<br/>pg_trgm + jellyfish, banded"]
       RE["Rule engine<br/>YAML decision tables"]
-      Z["Z3 safety proof<br/>active suspension =&gt; never CLEAR"]
+      Z["Z3 safety proof<br/>active suspension means never CLEAR"]
       L["Audit ledger<br/>HMAC-SHA256 hash chain"]
       DB[("Postgres")]
       ER --> RE --> L --> DB

@@ -1,49 +1,151 @@
-# CornerCheck
+<p align="center">
+  <img src="docs/demo-assets/banner.png" alt="CornerCheck: fighter-safety clearance, inside Slack" width="900">
+</p>
 
-A Slack-native AI agent that helps fight-operations teams, matchmakers, and athletic commissions confirm whether a combat-sports athlete is safe and cleared to compete.
+<p align="center">
+  <a href="https://github.com/StephenSook/cornercheck/actions/workflows/ci.yml"><img src="https://github.com/StephenSook/cornercheck/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <img src="https://img.shields.io/badge/tests-114%20passing-3fb950.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/python-3.12-blue.svg" alt="Python 3.12">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue.svg" alt="License Apache-2.0"></a>
+  <a href="https://cornercheck.onrender.com"><img src="https://img.shields.io/badge/agent-live-3fb950.svg" alt="Live"></a>
+</p>
 
-Built for the Slack Agent Builder Challenge, **Slack Agent for Good** track.
+A Slack-native AI agent that helps fight-operations teams, matchmakers, and athletic
+commissions confirm whether a combat-sports athlete is safe and cleared to compete. It catches
+the cross-jurisdiction medical suspension a team would otherwise miss, and **refuses to clear a
+fighter when it cannot be sure who they are.**
+
+Built for the Slack Agent Builder Challenge, **Slack Agent for Good** track. Live for judging at
+[cornercheck.onrender.com](https://cornercheck.onrender.com) (the agent itself runs inside Slack;
+that page confirms it is up).
+
+> CornerCheck is **decision support**. A human always makes the final call, and every decision
+> lands in a tamper-evident, hash-chained audit ledger.
 
 ## The problem
 
-Medical suspensions in boxing and MMA do not reliably cross jurisdictions. A fighter knocked out under one commission can be booked under another before the mandatory medical hold expires. For professional boxing, federal law (15 U.S.C. §6306(b)) requires the licensing commission to consult the suspending one first; in practice that step is often skipped, and MMA has no federal equivalent at all. In 2017, boxer Tim Hague died after a knockout in Edmonton; his prior medical suspension had lapsed days earlier and he fought as a late replacement. The 2024 fatality inquiry called for a single registry of fighters' medical and bout histories. CornerCheck brings that consult-first discipline to where fight operations already coordinate: Slack.
+Medical suspensions in boxing and MMA do not reliably cross jurisdictions. A fighter knocked out
+under one commission can be booked under another before the mandatory medical hold expires. For
+professional boxing, federal law (15 U.S.C. §6306(b)) requires the licensing commission to
+consult the suspending one first; in practice that step is often skipped, and MMA has no federal
+equivalent at all. In 2017, boxer Tim Hague died after a knockout in Edmonton; his prior medical
+suspension had lapsed days earlier and he fought as a late replacement. The 2024 fatality inquiry
+called for a single registry of fighters' medical and bout histories. CornerCheck brings that
+consult-first discipline to where fight operations already coordinate: Slack.
 
 ## What it does
 
-- **Catches cross-jurisdiction medical suspensions** against curated, source-cited public commission records
-- **Enforces return-to-competition windows** from the Association of Ringside Physicians / ABC guidelines (TKO 30 days, KO 60 days, KO with loss of consciousness 90 days, plus stricter state overlays), encoded as data-driven decision tables
-- **Surfaces injury signals from the team's own Slack** via the Real-Time Search API, with permalink citations
-- **Refuses to clear when fighter identity is ambiguous.** The pipeline is Retrieve, then Disambiguate (a human picks from candidates shown with DOB, weight class, record, last bout, jurisdiction), then Clear. Ambiguity fails closed. A wrong "cleared" can be fatal; a wrong "refused" costs a phone call.
+- **Catches cross-jurisdiction suspensions** against curated, source-cited public commission
+  records. When the booking commission differs from the suspending one, it surfaces the
+  consult-first step: binding federal law for boxing (15 U.S.C. §6306(b)), and for MMA the same
+  discipline applied where no federal rule exists.
+- **Enforces return-to-competition windows** from Association of Ringside Physicians / ABC
+  guidance (30 days after a TKO, 60 after a KO, 90 after a KO with loss of consciousness, plus
+  stricter state overlays), encoded as data-driven decision tables.
+- **Surfaces injury signals from the team's own Slack** via the Real-Time Search API, with
+  permalink citations, so a "got rocked in sparring Tuesday" message does not get lost.
+- **Refuses to clear an ambiguous identity.** Two pro fighters share a name; CornerCheck shows
+  the candidates and asks a human to pick. A wrong "cleared" can be fatal; a wrong "refused"
+  costs a phone call.
 
-CornerCheck is decision support. A human always makes the final call, and every decision lands in a tamper-evident, hash-chained audit ledger.
+## Architecture
 
-## Architecture (overview)
+CornerCheck is a **neurosymbolic** system: the language model perceives natural language and
+orchestrates tools, but the clearance decision itself comes from a deterministic, formally
+verified symbolic core. The model proposes; the proven core disposes. That separation is what
+lets the fail-closed guarantee be code, not a prompt.
 
-- **Slack surface**: Bolt for Python, Assistant middleware, Socket Mode; Block Kit verdict cards, disambiguation picker, audit Data Table, App Home
-- **Agent brain**: Claude Agent SDK orchestrating one modular FastMCP server (ledger, rules, and search tool groups); a deterministic PreToolUse hook makes the fail-closed guarantee code, not a model decision
-- **Computational core**: probabilistic entity resolution (splink offline, jellyfish + pg_trgm live), a YAML decision-table rule engine, and an HMAC-SHA256 hash-chained Postgres audit ledger
-- **Verification**: pytest + Hypothesis property tests, and **Z3 machine-checked verification** that the engine's suspension-window logic is equivalent to an independently-written safety specification over all dates and suspension intervals (if a suspension is active on the date, the engine can never return CLEAR), which no finite test suite can cover. The verification is not a tautology (an in-suite mutation test proves it catches engine corruption), and it earned its keep: it surfaced a real fail-open bug, a malformed `end < start` date range that silently cleared a suspended fighter, now fixed to fail closed. CI on every push; live smoke tests against the deployed instance.
+```mermaid
+flowchart TD
+    U["You, in Slack:<br/>Is this fighter cleared to compete?"]
+    U --> S
 
-CornerCheck is a **neurosymbolic system**: the LLM perceives natural language and orchestrates tools, but the clearance decision itself comes from a deterministic symbolic core (rule engine + entity resolution) whose safety invariant is formally verified. The model proposes; the proven symbolic core disposes. That separation is what lets a fail-closed guarantee be code, not a prompt.
+    subgraph NEURO["Neuro: perceives and orchestrates"]
+      direction TB
+      S["Slack surfaces<br/>Assistant pane / Block Kit / Real-Time Search"]
+      A["Claude Agent SDK brain"]
+      M["MCP server (FastMCP)<br/>resolve / rules / ledger tools"]
+      G{{"fail-closed gate<br/>(PreToolUse hook)"}}
+      S --> A --> M --> G
+    end
 
-Run the proof yourself: `uv run python scripts/z3_proof_demo.py`. It proves the invariant, then deletes a safety guard and watches Z3 produce the exact fighter the broken logic would wrongly clear.
+    subgraph SYM["Symbolic: decides, formally proven fail-closed"]
+      direction TB
+      ER["Entity resolution<br/>pg_trgm + jellyfish, banded"]
+      RE["Rule engine<br/>YAML decision tables"]
+      Z["Z3 safety proof<br/>active suspension means never CLEAR"]
+      L["Audit ledger<br/>HMAC-SHA256 hash chain"]
+      DB[("Postgres")]
+      ER --> RE --> L --> DB
+      RE -. verified by .-> Z
+    end
 
-Full diagram and the three fail-closed locks: `docs/architecture.md`.
+    G --> ER
+```
 
-## Status
+All three Slack agent surfaces are load-bearing: the **Assistant** pane and **Block Kit** (verdict
+cards, a disambiguation picker, a Data Table audit view), one **Model Context Protocol** server
+the Claude agent orchestrates, and **Real-Time Search** for the injury signal.
 
-Under active build for the July 13, 2026 submission. See commit history for progress.
+**Three independent fail-closed locks** each block a wrong clearance, so no single failure can
+produce one: an in-tool engine re-check (refused writes are themselves ledgered), a deterministic
+PreToolUse hook, and a pipeline whose card renders only from the engine, never from model prose.
+See [`docs/architecture.md`](docs/architecture.md) for the full write-up.
 
-## Development
+## Verification
+
+The clearance decision logic is checked by **Z3**: the engine's suspension-window membership is
+proven equivalent to an independently-written safety specification over all dates and intervals,
+so if a suspension is active on the date, the engine can never return CLEAR. The proof is not a
+tautology (an in-suite mutation test confirms it catches engine corruption), and it earned its
+keep: it surfaced a real fail-open bug, a malformed `end < start` date range that silently cleared
+a suspended fighter, now fixed to fail closed.
 
 ```bash
-uv sync                  # install
-docker compose up -d     # local Postgres
-uv run pytest            # tests (live-marked tests excluded by default)
-uv run ruff check .      # lint
-uv run mypy src tests    # types
+uv run python scripts/z3_proof_demo.py   # proves the invariant, then plants a bug and watches Z3 catch it
 ```
+
+## Quickstart
+
+```bash
+uv sync                       # install (Python 3.12)
+docker compose up -d          # local Postgres
+uv run python seeds/seed_db.py --force   # 4,107 real fighters + 15 cited suspension cases
+uv run pytest                 # 114 tests (live-marked tests excluded by default)
+uv run ruff check . && uv run mypy src tests
+```
+
+To run the agent you need a Slack app (Socket Mode) and an Anthropic API key; copy `.env.example`
+to `.env` and fill it in, then `uv run python -m cornercheck.app.main`.
+
+## Project layout
+
+```
+src/cornercheck/
+  app/          Slack surface: Assistant handlers, Block Kit cards, actions, App Home
+  brain/        Claude Agent SDK session, PreToolUse fail-closed hook, deterministic pipeline
+  mcp_server/   one FastMCP server, the agent's tool surface
+  rules/        YAML decision-table rule engine (clearance rules are data, not code)
+  er/           entity resolution (pg_trgm + jellyfish, threshold-banded, fail-closed)
+  ledger/       HMAC-SHA256 hash-chained audit ledger + verifier
+  verification/ Z3 safety proof
+tests/          unit, property (Hypothesis), integration, formal (Z3)
+docs/           architecture, decisions log, demo script, submission writeup
+```
+
+## Built with
+
+Python 3.12, Slack Bolt (Assistant, Socket Mode), Block Kit, Real-Time Search, Claude Agent SDK,
+FastMCP (Model Context Protocol), Postgres (pg_trgm, jellyfish), Z3, Hypothesis, Render.
+
+## Responsible AI
+
+CornerCheck is decision support, never a diagnosis or a replacement for a commission or a ringside
+physician. The model cannot decide clearance: the verdict is computed by the deterministic engine
+and gated by code. Every blocking suspension is shown with its source. Workspace search results
+are treated as untrusted data, cited by permalink and never stored. Identity ambiguity, an
+unreachable database, and a timed-out reasoning step all resolve toward "not cleared."
 
 ## License
 
-Apache-2.0. See `LICENSE`.
+[Apache-2.0](LICENSE).
