@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     cornercheck_model: str = "claude-opus-4-8"
     cornercheck_model_fallback: str = "claude-sonnet-4-6"
 
-    database_url: str = "postgresql://cornercheck:cornercheck@localhost:5432/cornercheck"
+    database_url: str = "postgresql://cornercheck:cornercheck@localhost:5433/cornercheck"
     cornercheck_ledger_hmac_key: str = ""
 
     boxing_data_api_key: str = ""

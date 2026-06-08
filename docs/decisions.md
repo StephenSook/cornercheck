@@ -71,6 +71,40 @@ One entry per spike verdict, frozen contract, or platform fact. Newest first wit
   column align/is_wrapped. Adopted as the audit-ledger view for Stage 5;
   section-fields fallback not needed.
 
+## Stage 2
+
+### 2026-06-07 - Seed data: dataset + 15 verified suspension cases
+
+- **Fighters dataset: github.com/KgKevin0/UFC-Stats UFC_fighters.csv, MIT license (verified),
+  4,107 real fighters.** Downloaded at seed time into gitignored seeds/data/downloads/, never
+  committed. Backup option: fivethirtyeight undefeated-boxers (CC-BY-4.0). Skipped:
+  Greco1899/scrape_ufc_stats (GPL-3.0; MIT alternative is cleaner for an Apache-2.0 repo).
+- **15 suspension cases, every one source-cited and adversarially verified** (workflow
+  wf_eb8d2099-8f9: 3 finder agents + per-case verifier agents fetching each source URL;
+  1 case honestly rejected when its source supported the death narrative but not a formal
+  suspension record). Manual spot-checks on the anchors: Santillan (BDB no-fight order until
+  Jul 31, fought Jul 20 in Argentina) and Chavez Jr (NSAC 9 months, $900k) re-verified by hand.
+- Coverage: 6 jurisdictions (CSAC, TDLR, NSAC, NYSAC, Maryland, German BDB), boxing + MMA,
+  KO/TKO/medical/administrative. **Four suspensions genuinely active as of 2026-06-07**
+  (dos Santos indefinite, Diaz to 2026-11-12, Brahimaj/Coria indefinite, Strickland indefinite):
+  live real-data demo material, zero mocking.
+- Demo scenario mapping asserted by seed_db.py on every run: CLEAR=Merab Dvalishvili;
+  cross-jurisdiction=Julio Cesar Chavez Jr.; active suspension=Junior dos Santos;
+  RTS chatter=Geoff Neal; disambiguation=Bruno Silva (TWO real UFC fighters share the name).
+
+### 2026-06-07 - Ledger + environment facts
+
+- Tamper-evidence demo verified end to end on real Postgres: INTACT -> forge seq 4 via
+  session_replication_role=replica bypass -> verify reports BROKEN at exactly seq 4 -> reset.
+- Local docker Postgres maps host port 5433 (system Postgres owns 5432 on this machine).
+- psycopg3 runs param-less execute() over the simple protocol, so multi-statement migration
+  files apply fine from the python runner; CI applies the same files via psql.
+- **Local pytest leaves test-keyed ledger rows** (integration suite truncates/appends with the
+  conftest test key). After running pytest locally: `verify_chain_demo.py reset` +
+  `seed_db.py --force`. Future hardening: dedicated cornercheck_test database.
+- Ledger payloads are floats-free JSON by design (jsonb round-trip determinism); enforced by
+  UnsafePayloadError at append and covered by Hypothesis properties.
+
 ### STAGE 1 GATE: PASSED 2026-06-07
 
 All four spikes WORKS on their primary paths; zero pre-chosen fallbacks adopted.
