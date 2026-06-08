@@ -61,7 +61,7 @@ def build_verdict_card(
         blocks.append(
             {
                 "type": "context",
-                "elements": [{"type": "mrkdwn", "text": f":balance_scale: {v.consultation_note}"}],
+                "elements": [{"type": "mrkdwn", "text": f":scales: {v.consultation_note}"}],
             }
         )
 
