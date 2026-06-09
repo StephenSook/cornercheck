@@ -104,11 +104,12 @@ def on_thread_started(say: Say, set_suggested_prompts: SetSuggestedPrompts) -> N
             {
                 "title": "Check a whole card",
                 "message": (
-                    "Check this card in Texas: Merab Dvalishvili vs Junior dos Santos, "
-                    "Bruno Silva vs Geoff Neal"
+                    "Check this card in Texas: Junior dos Santos vs Curtis Blaydes, "
+                    "Bruno Silva vs Brad Tavares"
                 ),
             },
             {"title": "Ambiguous name", "message": "Is Bruno Silva cleared to fight?"},
+            {"title": "Famous case", "message": "Is Jon Jones cleared to fight in California?"},
         ]
     )
 

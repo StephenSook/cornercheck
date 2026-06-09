@@ -1,148 +1,136 @@
-# CornerCheck demo video script
+# CornerCheck demo video script (v2.1, retimed and fact-checked)
 
-Target length: 2:45 to 3:00. Roughly 60 percent live screen demo, talking-head bookends.
+Target length: 2:50 to 2:55, STRICT ceiling 3:00. VO lines are word-budgeted to about
+145 words per minute so natural delivery fits the slots; do not rush the cold open.
 Track: Slack Agent for Good. Live link shown on screen: https://cornercheck.onrender.com
 
 Two recording modes, called out per beat:
 - **[CAMERA]** = you on camera, talking head, looking into the lens.
 - **[VOICEOVER]** = your voice over a screen recording, camera off.
 
-Read the VO lines as written. They are AI-tone clean (no em-dashes, no filler). Natural
-delivery beats polished delivery. Record each beat in a few takes; I assemble the best.
+Read the VO lines as written. They are AI-tone clean and fact-checked against the live
+system. Natural delivery beats polished delivery. Record each beat in a few takes.
 
 ---
 
-## Beat 0: Cold open  (0:00 to 0:15)  [CAMERA]
+## Beat 0: Cold open  (0:00 to 0:22)  [CAMERA]
 
-On camera, calm and direct. This is the human anchor; mean it.
+On camera, calm and direct. This is the human anchor; mean it. ~48 words.
 
-> "In 2017, boxer Tim Hague died after a knockout in Edmonton. His medical suspension had
-> lapsed days earlier, and he fought as a late replacement. The inquiry that followed called
-> for a single registry of fighters' medical and bout histories. That registry still does not
-> exist, and it is worse in the US, where suspensions do not reliably cross state lines. So I
-> built the check, inside Slack, where fight operations already work."
+> "In 2017, fighter Tim Hague died after a knockout in a boxing match. His medical
+> suspension had lapsed days earlier, and he fought as a late replacement. Nobody
+> re-checked. Suspensions still do not reliably cross state lines. So I built the check,
+> inside Slack, where fight operations already work."
 
-Direction: hold eye contact with the lens on "He died." One beat of silence after it.
-
----
-
-## Beat 1: Title  (0:15 to 0:18)  [TITLE CARD, no voice]
-
-Full-screen card: **CornerCheck** / "Fighter-safety clearance, inside Slack" / Agent for Good.
-(I generate this card.)
+Direction: hold eye contact on "died." One full beat of silence after "Nobody re-checked."
 
 ---
 
-## Beat 2: What it is  (0:18 to 0:27)  [VOICEOVER over Slack]
+## Beat 1: Title  (0:22 to 0:25)  [TITLE CARD, no voice]
 
-Screen: the CornerCheck agent pane, empty, the intro message visible.
-
-> "CornerCheck is a Slack agent. You ask whether a fighter is cleared to compete. It checks
-> suspensions across jurisdictions, return-to-competition windows, and your team's own injury
-> chatter. And it refuses to clear when it cannot be sure who the fighter is."
+Full-screen card: **CornerCheck** / "The agent that refuses to guess" / Agent for Good.
 
 ---
 
-## Beat 3: A clean clearance  (0:27 to 0:38)  [VOICEOVER]
+## Beat 2: The whole card, at once  (0:25 to 0:48)  [VOICEOVER]
 
-Screen: type `Is Merab Dvalishvili cleared?` Send. The green CLEAR card renders.
+Screen: CornerCheck agent pane, fresh chat. Type:
+`Check this card in Texas: Junior dos Santos vs Curtis Blaydes, Bruno Silva vs Brad Tavares`
+Send. The board renders: every fighter banded. ~52 words.
 
-> "A clean fighter clears in seconds, with the date it is good as of, and an audit reference.
-> Notice the footer: decision support, a human makes the final call. CornerCheck never
-> pretends to be the doctor or the commission."
+> "Clear a whole lineup at once. Green: no recorded suspension matched. Red: blocked, with
+> the reason cited underneath. And the yellow one says NEEDS PICK, because it refuses to
+> guess who that fighter even is. Every verdict on this board just landed in a
+> tamper-evident audit ledger."
 
-Direction: let the card sit on screen for a full second before cutting.
-
----
-
-## Beat 4: The cross-jurisdiction catch  (0:38 to 1:08)  [VOICEOVER]
-
-This is the headline. Screen: type `Is Junior dos Santos cleared in Texas?` Send. The red
-DO NOT CLEAR card renders, with the CSAC suspension, the source link, the scales note, and
-the workspace injury signal.
-
-> "Now the one that matters. Is Junior dos Santos cleared to fight in Texas? No. There is an
-> active, indefinite suspension from the California commission, pending neurological
-> clearance after a knockout, and the source is cited right there. Texas and California are
-> different commissions. For boxing, federal law requires them to consult each other first.
-> For MMA, there is no such rule, and that is the gap CornerCheck closes by applying the same
-> consult-first step. And look at the bottom: it found a warning in the team's own Slack,
-> posted days earlier. That is the message that gets missed."
-
-Direction: slow mouse-scroll down the card as you narrate each section. Pause on the source
-link and on the "Workspace injury signal" line.
+Direction: let the board land, then slow-scroll to the cited blocker below the table.
 
 ---
 
-## Beat 5: Fail closed on identity  (1:08 to 1:35)  [VOICEOVER]
+## Beat 3: The cross-jurisdiction catch  (0:48 to 1:12)  [VOICEOVER]
 
-Screen: type `Is Bruno Silva cleared to fight?` Send. The disambiguation card renders with
-the candidate list. Then click **Select** on the middleweight (record 23-9-0). The CLEAR
-card renders inline.
+Screen: type `Is Junior dos Santos cleared in Texas?` Send. The red card renders. ~56 words.
 
-> "Now watch it refuse. There are two professional fighters named Bruno Silva. Clearing the
-> wrong one can be fatal, so CornerCheck will not guess. It shows you who it found, with
-> weight class and record, and it asks a human to choose. I pick the middleweight, and now it
-> clears that exact fighter, and writes that decision to the ledger."
+> "The catch that matters. Blocked: an active indefinite suspension from the California
+> commission, pending neurological clearance after a knockout. Source cited right there.
+> Texas is a different commission, and that gap is what CornerCheck closes. At the bottom,
+> a warning surfaced from the team's own Slack messages. And the footnote: identity
+> confirmed by a calibrated statistical gate."
 
-Direction: hover the two identical "Bruno Silva" rows before clicking, so the viewer sees the
-collision. This is the signature beat; give it room.
-
----
-
-## Beat 6: It reasons  (1:35 to 1:55)  [VOICEOVER]
-
-Screen: type `Why was Junior dos Santos refused?` Send. The agent's prose answer renders.
-
-> "And it reasons. Ask why, and the agent walks back through the rule it applied, the
-> suspension, the cited source, and it points medical questions to a ringside physician. The
-> cards come from a deterministic engine. The agent explains around them. It never overrides
-> them."
+Direction: slow scroll; pause on the source link, the injury signal, then the identity
+footnote ("conformal singleton at 95% coverage").
 
 ---
 
-## Beat 7: Tamper-evident audit  (1:55 to 2:12)  [VOICEOVER]
+## Beat 4: Fail closed on identity  (1:12 to 1:30)  [VOICEOVER]
 
-Screen: click **View audit trail** on a card. The audit Data Table renders, "chain intact".
+Screen: type `Is Bruno Silva cleared to fight?` The disambiguation card renders. Click
+**Select** on the middleweight (23-9-0). The CLEAR card renders. ~42 words.
 
-> "Every decision lands in a tamper-evident, hash-chained ledger. If anyone edits a past
-> clearance, verification reports the exact entry that broke. In a sport where a missed
-> suspension can end a life, you need a record that cannot be quietly changed."
+> "Two professional fighters are named Bruno Silva. Clearing the wrong one can be fatal,
+> so it will not guess. It shows both, with weight class and record, and a human picks.
+> The pick itself is written to the ledger."
 
----
-
-## Beat 8: Formally verified  (2:12 to 2:33)  [VOICEOVER over a terminal]
-
-Screen: a clean terminal. Run `uv run python scripts/z3_proof_demo.py`. The PROVEN lines and
-the COUNTEREXAMPLE line print.
-
-> "The part that decides clearance is formally verified. Z3 proves, across every possible
-> date and suspension, that if a suspension is active, the engine can never return cleared.
-> And it is not just a green checkmark. Plant a bug, and it hands you the exact fighter the
-> broken logic would have cleared. Writing this proof caught a real bug, and we fixed it."
-
-Direction: let the terminal output appear at a readable speed. If it runs too fast, I slow it
-in the edit.
+Direction: hover both identical "Bruno Silva" rows before clicking. Signature beat.
 
 ---
 
-## Beat 9: How it works  (2:33 to 2:43)  [VOICEOVER over architecture diagram]
+## Beat 5: A second source that can only tighten  (1:30 to 1:47)  [VOICEOVER]
 
-Screen: the architecture diagram (I generate it).
+Screen: type `Is Ryan Garcia cleared to fight?` Pick Ryan Garcia (boxing). The CLEAR card
+renders with the satellite line. ~40 words.
 
-> "Under the hood: three Slack surfaces, Assistant, Block Kit, and Real-Time Search, a Claude
-> agent driving a Model Context Protocol server, and a neurosymbolic core where the language
-> model perceives, but a proven symbolic engine decides."
+> "Boxing verdicts get corroborated against a live record feed. That line is his actual
+> professional record from the live source. The rule is one-way: live data can tighten a
+> verdict. Nothing it says can ever loosen one."
 
 ---
 
-## Beat 10: Close  (2:43 to 2:58)  [CAMERA]
+## Beat 6: The proof, in the product  (1:47 to 2:05)  [VOICEOVER]
 
-Back on camera. Warm, certain.
+Screen: on the verdict card, click **See the safety proof**. The proof card renders. ~44 words.
 
-> "CornerCheck is live right now, and you can use it. It is one cross-check, in the place
-> fight teams already coordinate, between a fighter and the worst day of someone's life.
-> Thank you for watching."
+> "Every card carries this button. Click it, and the Z3 theorem prover re-proves, right
+> then, that an active suspension can never come out cleared, across every possible date.
+> The second line is a deliberately broken version that must fail. No rubber stamps."
+
+---
+
+## Beat 7: An audit you can hand to a commission  (2:05 to 2:20)  [VOICEOVER]
+
+Screen: click **View audit trail**, then **Export to Canvas**; open the Canvas. ~36 words.
+
+> "Every decision, hash-chained and append-only. Edit one past entry and verification
+> names it. One click exports the whole trail to a Canvas you can hand to a promoter or a
+> commission."
+
+---
+
+## Beat 8: It watches the roster on its own  (2:20 to 2:33)  [VOICEOVER]
+
+Screen: open #cornercheck-ops, a real roster-monitor digest visible. ~32 words.
+
+> "And it does not wait to be asked. A daily digest: windows about to lapse, windows just
+> lapsed, new blocks. Deterministic triggers only. Quiet days send nothing."
+
+---
+
+## Beat 9: Run the proof yourself  (2:33 to 2:43)  [VOICEOVER over the dashboard]
+
+Screen: cornercheck.onrender.com. Click **Run the safety proof**. The PROVEN stamp thunks
+in. ~28 words.
+
+> "All of it is live right now. Real numbers from the real database, and that proof button
+> works for you too. Milliseconds."
+
+---
+
+## Beat 10: Close  (2:43 to 2:53)  [CAMERA]
+
+Back on camera. Warm, certain. ~26 words.
+
+> "CornerCheck is one cross-check, where fight teams already work, between a fighter and
+> the worst day of someone's life. Thank you for watching."
 
 End card: **cornercheck.onrender.com** + the GitHub repo + "Slack Agent for Good".
 
@@ -151,36 +139,44 @@ End card: **cornercheck.onrender.com** + the GitHub repo + "Slack Agent for Good
 ## What to record, and how
 
 ### Screen capture (Screen Studio)
-- Use the **deployed** agent (the sandbox CornerCheck app), not your laptop's local copy.
+- Use the **deployed** agent (the sandbox CornerCheck app), not a local copy.
 - Open a **clean New Chat** before each beat so the thread is fresh.
-- **Dismiss the bottom Slack banner** ("Slackbot, Enterprise search...") with its X before recording.
-- Hide the browser bookmarks bar and close unrelated tabs, or record a clean browser window.
-- Zoom the Slack pane (Cmd +) until card text is comfortably readable at video size.
-- **Pre-warm every beat once** right before the real take: run each query so caches are warm
-  and the RTS injury index is populated. The injury signal needs the seeded messages indexed
-  (run `seeds/seed_demo.py` about three minutes before recording).
-- Record each beat as its own clip. Do not try to do the whole demo in one take.
+- **Dismiss the bottom Slack banner** ("Slackbot, Enterprise search...") before recording.
+- Hide the bookmarks bar, close unrelated tabs, zoom the Slack pane (Cmd +) until card text
+  reads comfortably at video size.
+- **Seed the injury chatter the day BEFORE recording** (`seeds/seed_demo.py`), so the
+  workspace warning genuinely predates the take; re-run it ~3 minutes before recording only
+  if the index needs refreshing.
+- **Pre-warm every beat once** right before the real take. The Ryan Garcia beat warms the
+  boxing-data cache on first run; the card then says "(cached live data from ...)", which
+  matches the VO ("from the live record feed").
+- The ops-digest beat needs a real digest in #cornercheck-ops. The daily run drifts about an
+  hour earlier per day; if none is fresh, trigger one with
+  `uv run python -m cornercheck.monitor`.
+- Record each beat as its own clip. Never the whole demo in one take.
 
 ### Talking head (camera, beats 0 and 10 only)
-- Eye-level camera, lens at your eye line, not below.
-- Soft front light, plain or softly-blurred background.
-- Look **into the lens**, not at your screen.
-- Record the open and the close several times each. These two bookends carry the emotion.
+- Eye-level camera, soft front light, plain background. Look **into the lens**.
+- Record the open and close several times. The bookends carry the emotion.
 
 ### Voiceover (beats 2 through 9)
-- Separate audio pass, quiet room, consistent distance from the mic.
-- Read the lines naturally, conversational pace, slight emphasis on the bold-feeling words
-  ("No.", "refuse", "cannot be quietly changed", "caught a real one").
-- A pop filter helps. If you flub a line, pause and re-read the whole sentence so I can cut cleanly.
+- Separate audio pass, quiet room, consistent mic distance.
+- The word counts are budgeted for ~145 wpm. If a take feels rushed, it is; slow down,
+  the slots have headroom.
+- Emphasis words: "refuses", "Blocked", "fatal", "one-way", "No rubber stamps",
+  "Quiet days send nothing".
 
 ### What I assemble
-VO timed to the screen action, talking-head open and close, title and architecture cards,
-auto-captions (whisper), a music bed ducked under your voice, loudness normalized to -16 LUFS,
-denoise on the VO, sub-three-minute final cut. Upload unlisted first for your review, then public.
+VO timed to screen action, talking-head bookends, title card, auto-captions, music bed
+ducked under voice, loudness normalized to -16 LUFS, denoise, final cut at 2:50-2:55.
+Unlisted upload first for review, then public.
 
 ### Pre-flight checklist (run right before recording)
-1. Deployed agent responding (open the app, send one test query, delete that chat).
-2. `seeds/seed_demo.py` run ~3 min prior so the RTS injury beat lands.
-3. Bottom Slack banner dismissed; clean browser; Slack pane zoomed.
-4. Terminal ready in the repo for the Z3 beat (`uv run python scripts/z3_proof_demo.py`).
-5. One full dry run of all ten beats, no recording, to confirm nothing errors.
+1. Deployed agent responding (one test query, then delete that chat).
+2. Injury chatter seeded the day before; index confirmed (run the JDS query, see the signal).
+3. One Ryan Garcia query run earlier (boxing cache warm).
+4. Canvas scopes installed (Export to Canvas returns a permalink, not the scope note).
+5. A digest visible in #cornercheck-ops (CLI trigger if stale).
+6. Bottom Slack banner dismissed; clean browser; Slack pane zoomed.
+7. cornercheck.onrender.com open in a second tab for beat 9.
+8. One full dry run of all beats, no recording, confirming nothing errors.
