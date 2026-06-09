@@ -5,16 +5,37 @@ import json
 import threading
 import urllib.error
 import urllib.request
+import uuid
 from collections.abc import Iterator
+from datetime import date, timedelta
 from http.server import ThreadingHTTPServer
 
 import pytest
 
+from cornercheck.app import dashboard
 from cornercheck.app.web import _Handler
+from cornercheck.db.pool import get_pool
 
 
 @pytest.fixture
 def base_url(db: str) -> Iterator[str]:
+    """Server plus ONE self-inserted fighter+suspension: CI's Postgres is migrated but
+    UNSEEDED, so live-count assertions must create what they assert (the PR #20 lesson,
+    relearned on this very file)."""
+    fid = str(uuid.uuid4())
+    with get_pool().connection() as conn:
+        conn.execute(
+            "INSERT INTO fighters (id, full_name, wins, losses, draws, sport, source)"
+            " VALUES (%s, 'Zw Dashboard Probe', 0, 0, 0, 'mma', 'test-fixture')",
+            (fid,),
+        )
+        conn.execute(
+            "INSERT INTO suspensions (fighter_id, suspension_type, start_date, end_date,"
+            " indefinite, jurisdiction, source_url)"
+            " VALUES (%s, 'medical', %s, %s, false, 'TEST (fixture)', 'https://example.test')",
+            (fid, date.today() - timedelta(days=10), date.today() + timedelta(days=30)),
+        )
+    dashboard._stats_cache = None  # the endpoint must reflect THIS test's data
     server = ThreadingHTTPServer(("127.0.0.1", 0), _Handler)
     t = threading.Thread(target=server.serve_forever, daemon=True)
     t.start()
@@ -22,6 +43,9 @@ def base_url(db: str) -> Iterator[str]:
         yield f"http://127.0.0.1:{server.server_address[1]}"
     finally:
         server.shutdown()
+        with get_pool().connection() as conn:
+            conn.execute("DELETE FROM fighters WHERE id = %s", (fid,))
+        dashboard._stats_cache = None
 
 
 def _get(url: str) -> tuple[int, bytes, str]:
@@ -39,8 +63,11 @@ def test_stats_endpoint_serves_live_numbers(base_url: str) -> None:
     code, body, ctype = _get(base_url + "/api/stats")
     assert code == 200 and "application/json" in ctype
     s = json.loads(body)
-    assert s["fighters"] and s["fighters"] > 100  # real DB counts, not hardcoded
-    assert s["cases"] >= 54
+    # The fixture inserted exactly one fighter+suspension: live counts must include them
+    # (proves the numbers come from the DB, with no dependence on seed data).
+    assert s["fighters"] is not None and s["fighters"] >= 1
+    assert s["cases"] is not None and s["cases"] >= 1
+    assert s["jurisdictions"] is not None and s["jurisdictions"] >= 1
     assert s["chain"]["ok"] in (True, False, None)
 
 
