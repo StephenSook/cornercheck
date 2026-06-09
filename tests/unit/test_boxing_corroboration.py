@@ -164,7 +164,7 @@ def test_bool_and_negative_stats_never_compare() -> None:
 
 def test_corroborate_fighter_never_raises(monkeypatch: pytest.MonkeyPatch) -> None:
     # A corroboration crash must never destroy a verdict: ANY exception degrades to
-    # UNAVAILABLE (also keeps a poisoned 7-day cache entry from blocking every check).
+    # UNAVAILABLE (also keeps a poisoned multi-day cache entry from blocking every check).
     def boom(name: str) -> None:
         raise RuntimeError("synthetic corroboration crash")
 

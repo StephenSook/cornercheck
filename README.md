@@ -17,7 +17,8 @@ fighter when it cannot be sure who they are.**
 
 Built for the Slack Agent Builder Challenge, **Slack Agent for Good** track. Live for judging: the
 agent runs inside Slack, and [cornercheck.onrender.com](https://cornercheck.onrender.com) is its
-public health page.
+live public dashboard: real stats from the real database, the audit chain verified at page load,
+and the Z3 safety proof you can run yourself, right there, in milliseconds.
 
 > CornerCheck is **decision support**. A human always makes the final call, and every decision
 > lands in a tamper-evident, hash-chained audit ledger.
@@ -154,7 +155,7 @@ uv run python scripts/calibrate_er.py --check   # recomputes the calibration and
 uv sync                       # install (Python 3.12)
 docker compose up -d          # local Postgres
 uv run python seeds/seed_db.py --force   # 4,107 real fighters + 54 cited suspension cases
-uv run pytest                 # 192 tests (live-marked tests excluded by default)
+uv run pytest                 # 207 tests (live-marked tests excluded by default)
 uv run ruff check . && uv run mypy src tests
 ```
 
