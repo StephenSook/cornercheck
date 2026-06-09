@@ -74,5 +74,12 @@ class SessionStore:
         with self._lock:
             self._threads[thread_key] = ThreadState()
 
+    def discard(self, thread_key: str) -> None:
+        """Drop a thread's state entirely. Single-shot surfaces (the Workflow Builder
+        step uses a fresh uuid key per execution) must discard on the way out, or an
+        unattended workflow leaks one entry per run for the process lifetime."""
+        with self._lock:
+            self._threads.pop(thread_key, None)
+
 
 SESSION_STORE = SessionStore()

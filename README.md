@@ -4,7 +4,7 @@
 
 <p align="center">
   <a href="https://github.com/StephenSook/cornercheck/actions/workflows/ci.yml"><img src="https://github.com/StephenSook/cornercheck/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <img src="https://img.shields.io/badge/tests-207%20passing-3fb950.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/tests-218%20passing-3fb950.svg" alt="Tests">
   <img src="https://img.shields.io/badge/python-3.12-blue.svg" alt="Python 3.12">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue.svg" alt="License Apache-2.0"></a>
   <a href="https://cornercheck.onrender.com"><img src="https://img.shields.io/badge/agent-live-3fb950.svg" alt="Live"></a>
@@ -90,11 +90,14 @@ flowchart TD
     G --> ER
 ```
 
-All three Slack agent surfaces are load-bearing: the **Assistant** pane and **Block Kit** (verdict
-cards, a disambiguation picker, a Data Table audit view, and a "See the safety proof" button that
-runs the Z3 proof live), one **Model Context Protocol** server the Claude agent orchestrates, and
-**Real-Time Search** for the injury signal. **Incoming Webhooks** carry the daily roster-monitor
-digest to an ops channel.
+Every Slack surface here is load-bearing: the **Assistant** pane and **Block Kit** (verdict
+cards, the whole-card board, a disambiguation picker, a Data Table audit view, and a "See the
+safety proof" button that runs the Z3 proof live), one **Model Context Protocol** server the
+Claude agent orchestrates, **Real-Time Search** for the injury signal, **Canvas** for the
+exportable audit trail, **Incoming Webhooks** for the daily roster-monitor digest, and a
+**Workflow Builder custom step** ("Check fighter clearance") that gives any workflow the same
+fail-closed verdict and halts the workflow on any error, because a halted workflow cannot book
+a fighter.
 
 **Three independent fail-closed locks** each block a wrong clearance, so no single failure can
 produce one: an in-tool engine re-check (refused writes are themselves ledgered), a deterministic
@@ -155,7 +158,7 @@ uv run python scripts/calibrate_er.py --check   # recomputes the calibration and
 uv sync                       # install (Python 3.12)
 docker compose up -d          # local Postgres
 uv run python seeds/seed_db.py --force   # 4,107 real fighters + 54 cited suspension cases
-uv run pytest                 # 207 tests (live-marked tests excluded by default)
+uv run pytest                 # 218 tests (live-marked tests excluded by default)
 uv run ruff check . && uv run mypy src tests
 ```
 
