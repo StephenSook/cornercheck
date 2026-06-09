@@ -12,6 +12,7 @@ from cornercheck.app.blocks.proof_card import build_proof_card
 from cornercheck.app.blocks.proof_card import fallback_text as proof_fallback
 from cornercheck.app.blocks.verdict_card import build_verdict_card
 from cornercheck.app.blocks.verdict_card import fallback_text as verdict_fallback
+from cornercheck.app.canvas import export_audit_canvas
 from cornercheck.brain.pipeline import confirm_candidate
 from cornercheck.db.pool import get_pool
 from cornercheck.ledger.verify import verify_chain
@@ -113,6 +114,35 @@ def register_actions(app: App) -> None:
                 channel,
                 thread_ts,
                 ":rotating_light: Could not read the audit ledger right now. Please retry.",
+            )
+
+    @app.action("export_audit_canvas")
+    def on_export_canvas(ack: Ack, body: dict, client: WebClient) -> None:
+        """Chain-verify, then export the trail to a shareable Canvas. A failed export
+        never reads as a failed audit: the table stays authoritative."""
+        ack()
+        channel, thread_ts = _thread_coords(body)
+        try:
+            result = verify_chain()
+            permalink, note = export_audit_canvas(
+                client, channel, _recent_entries(), result.ok, result.detail
+            )
+            if permalink:
+                text = (
+                    f":memo: Audit trail exported to a Canvas: <{permalink}|open it here>. "
+                    "Durable and shareable; chain-verified at export time."
+                )
+            else:
+                text = f":warning: {note}"
+            _reply(client, channel, thread_ts, text)
+        except Exception:
+            log.exception("export_audit_canvas failed")
+            _reply(
+                client,
+                channel,
+                thread_ts,
+                ":rotating_light: Could not export the Canvas. The in-Slack audit table "
+                "remains authoritative.",
             )
 
 

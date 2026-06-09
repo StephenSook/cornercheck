@@ -4,6 +4,21 @@ One entry per spike verdict, frozen contract, or platform fact. Newest first wit
 
 ## Galaxy tier 2
 
+### 2026-06-09 - Audit trail exports to a Slack Canvas (chain-verified at export time)
+
+- "Export to Canvas" button on the audit table (action export_audit_canvas). app/canvas.py
+  builds deterministic markdown from the ledger (chain VERIFIED immediately before export;
+  a broken chain renders "do not trust this export"), creates a standalone canvas
+  (canvases.create), grants the channel read access, posts the permalink.
+- FROZEN CONTRACT: a failed EXPORT must never read as a failed AUDIT. Every failure path
+  (missing scope, plan gate, network, permalink lookup) returns an actionable note and the
+  in-Slack table stays authoritative. Handler never raises into the listener.
+- Manifest gained canvases:write + files:read. HUMAN STEP (board 4e): re-apply
+  slack/manifest.json in the app config and reinstall to the workspace; until then the
+  button replies with exactly that instruction (fail-soft, demoable either way).
+- Also fixed: the pre-existing audit table builder crashed on a non-dict ledger payload
+  (poison-row guard added, same pattern as the monitor's).
+
 ### 2026-06-09 - In-product live Z3 proof button: the proof becomes a clickable surface
 
 - Every verdict card now carries "See the safety proof" (action view_safety_proof): the
