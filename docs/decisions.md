@@ -4,6 +4,38 @@ One entry per spike verdict, frozen contract, or platform fact. Newest first wit
 
 ## Galaxy tier 1
 
+### 2026-06-09 - Live boxing-data.com corroboration: a second source that can only tighten
+
+- sources/boxing_data.py (stdlib urllib client, Postgres response cache, recorded-real demo
+  fixtures) + sources/corroborate.py (deterministic comparison, no LLM) + tighten-only
+  composition in brain/pipeline.py. CorroborationOut rides every verdict and is ledgered.
+- FROZEN CONTRACT: corroboration TIGHTENS only. DISAGREED (live source shows MORE bouts than
+  the record on file, when a record IS on file) withholds a CLEAR pending commission
+  verification. UNAVAILABLE / UNMATCHED / NOT_APPLICABLE (MMA) annotate and never block:
+  absence of evidence is not disagreement. Nothing the live source says can loosen a verdict.
+- PLATFORM FACTS (live-probed 2026-06-09, key verified): host boxing-data-api.p.rapidapi.com,
+  auth X-RapidAPI-Key; origin Cloudflare BANS default Python user agents (403 "error code:
+  1010", and the failed call still burns RapidAPI quota), a product User-Agent passes; search
+  is token-fuzzy (full-name query returns up to 25 partial matches; exact casefold match
+  required); stats keys are OPTIONAL per fighter and total_bouts is inconsistent with w+l+d
+  where present (sums computed on both sides instead); /v2/fights/?fighter_id= returned 0
+  bouts for a headline fighter, so the bout-during-suspension check was CUT from V1 (will not
+  build on an endpoint that returns empty); free tier 100 requests/month (7-day Postgres
+  cache + one search call per uncached boxing fighter).
+- DB FACT: all 4 seeded boxing fighters carry 0-0-0 records (record not on file). 0-0-0 means
+  "not recorded", never "never fought": the live record FILLS the gap (CONFIRMED), it cannot
+  disagree with an empty record. Hugo Alfredo Santillan is absent from the live source
+  entirely: the honest UNMATCHED path, demoed with real data.
+- Adversarial gates caught pre-merge: (1) BLOCKER, wrong-shape-but-valid-JSON upstream data
+  crashed the whole verdict AND poisoned the cache for 7 days (fixed: shape guards + a
+  never-raises UNAVAILABLE wrapper in corroborate_fighter); (2) bools/negatives pass
+  isinstance(int) and could fabricate CONFIRMED or garbage-block via DISAGREED (fixed:
+  type-is-int + non-negative checks); (3) failure-class-blind logging (fixed: exception type
+  in every degradation log). Each pinned by a regression test.
+- KNOWN GAP (documented, deliberate): the MCP rules_evaluate_clearance tool returns the
+  un-tightened rule verdict (corroboration lives in the pipeline path that drives the cards
+  and the ledger). Wire it into the MCP surface if/when the agent path needs it.
+
 ### 2026-06-09 - Whole-fight-card clearance: the matchmaker's real workflow, fail-closed per slot
 
 - New surface: paste a card ("UFC 310: A vs B, C vs D") and every bout lands on one Block Kit

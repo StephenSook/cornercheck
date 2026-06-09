@@ -78,10 +78,11 @@ flowchart TD
       direction TB
       ER["Entity resolution<br/>pg_trgm + jellyfish, banded"]
       RE["Rule engine<br/>YAML decision tables"]
+      CORR["Live corroboration<br/>boxing-data.com, tighten-only"]
       Z["Z3 safety proof<br/>active suspension means never CLEAR"]
       L["Audit ledger<br/>HMAC-SHA256 hash chain"]
       DB[("Postgres")]
-      ER --> RE --> L --> DB
+      ER --> RE --> CORR --> L --> DB
       RE -. verified by .-> Z
     end
 
@@ -96,6 +97,14 @@ the Claude agent orchestrates, and **Real-Time Search** for the injury signal.
 produce one: an in-tool engine re-check (refused writes are themselves ledgered), a deterministic
 PreToolUse hook, and a pipeline whose card renders only from the engine, never from model prose.
 See [`docs/architecture.md`](docs/architecture.md) for the full write-up.
+
+**A live second source corroborates, one-way.** Boxing verdicts are checked against the live
+boxing-data.com record (cached, deterministic comparison, no LLM involved). A disagreement
+(the live source showing more bouts than the record on file, the classic stale-record failure)
+**tightens** the verdict: a CLEAR is withheld pending commission verification. Live data being
+unavailable, unmatched, or not applicable (MMA) only annotates; absence of evidence never blocks
+and nothing the live source says can ever loosen a verdict. The full corroboration evidence is
+written to the audit ledger with every decision.
 
 ## Verification
 
@@ -116,7 +125,7 @@ uv run python scripts/z3_proof_demo.py   # proves the invariant, then plants a b
 uv sync                       # install (Python 3.12)
 docker compose up -d          # local Postgres
 uv run python seeds/seed_db.py --force   # 4,107 real fighters + 15 cited suspension cases
-uv run pytest                 # 114 tests (live-marked tests excluded by default)
+uv run pytest                 # 147 tests (live-marked tests excluded by default)
 uv run ruff check . && uv run mypy src tests
 ```
 
@@ -135,6 +144,7 @@ src/cornercheck/
   mcp_server/   one FastMCP server, the agent's tool surface
   rules/        YAML decision-table rule engine (clearance rules are data, not code)
   er/           entity resolution (pg_trgm + jellyfish, threshold-banded, fail-closed)
+  sources/      live corroborating sources: boxing-data.com client, cache, recorded fixtures
   ledger/       HMAC-SHA256 hash-chained audit ledger + verifier
   verification/ Z3 safety proof
 tests/          unit, property (Hypothesis), integration, formal (Z3)
