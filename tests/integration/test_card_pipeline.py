@@ -16,9 +16,12 @@ PREFIX = "ZZ-CardTest"
 def card_fixture(db: str) -> Iterator[dict[str, str]]:
     ids: dict[str, str] = {}
     with get_pool().connection() as conn:
+        # Names chosen mutually distinct (pairwise Jaro-Winkler <= 0.89, below the
+        # conformal floor): the gate correctly demotes near-identical fixture names,
+        # and this test is about banding statuses, not near-tie demotion.
         for key, name in {
-            "clean": f"{PREFIX} Clean Solo",
-            "held": f"{PREFIX} Held Solo",
+            "clean": f"{PREFIX} Amara Okafor",
+            "held": f"{PREFIX} Brick Vandergelder",
             "dup_a": f"{PREFIX} Twin Card",
             "dup_b": f"{PREFIX} Twin Card",
         }.items():
@@ -43,7 +46,7 @@ def card_fixture(db: str) -> Iterator[dict[str, str]]:
 def test_clear_card_bands_each_fighter(card_fixture: dict[str, str]) -> None:
     verdicts = clear_card(
         "card-thread",
-        [f"{PREFIX} Clean Solo", f"{PREFIX} Held Solo", f"{PREFIX} Twin Card"],
+        [f"{PREFIX} Amara Okafor", f"{PREFIX} Brick Vandergelder", f"{PREFIX} Twin Card"],
         target_jurisdiction="Texas",
     )
     by_status = {v.status for v in verdicts}
@@ -55,7 +58,7 @@ def test_clear_card_bands_each_fighter(card_fixture: dict[str, str]) -> None:
 
 
 def test_clear_card_logs_a_batch_entry(card_fixture: dict[str, str]) -> None:
-    clear_card("card-thread-2", [f"{PREFIX} Clean Solo", f"{PREFIX} Held Solo"])
+    clear_card("card-thread-2", [f"{PREFIX} Amara Okafor", f"{PREFIX} Brick Vandergelder"])
     with get_pool().connection() as conn:
         row = conn.execute(
             "SELECT payload FROM ledger WHERE action = 'card_check' ORDER BY seq DESC LIMIT 1"

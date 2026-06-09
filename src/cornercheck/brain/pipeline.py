@@ -30,8 +30,13 @@ def start_clearance(
         if not SESSION_STORE.confirm(thread_key, c.fighter_id):
             # State changed under us (concurrent reset): fail closed to disambiguation
             # rather than write anything. Never an assert: gates must survive -O.
-            return from_resolution(query, d, r)
-        return _verdict_for(thread_key, query, c.fighter_id, d, target_jurisdiction)
+            # The certified-singleton note must NOT ride along onto a refusal card.
+            return from_resolution(query, d, r).model_copy(
+                update={"identity_note": "session state changed during confirmation; retry"}
+            )
+        return _verdict_for(
+            thread_key, query, c.fighter_id, d, target_jurisdiction, identity_note=r.note
+        )
     if r.status == "AMBIGUOUS":
         SESSION_STORE.set_candidates(thread_key, {c.fighter_id: c.full_name for c in r.candidates})
     else:  # NOT_FOUND: terminal refusal, no pick is awaited
@@ -89,7 +94,14 @@ def confirm_candidate(
         SESSION_STORE.set_candidates(thread_key, {c.fighter_id: c.full_name for c in r.candidates})
     if not SESSION_STORE.confirm(thread_key, fighter_id):
         return None
-    return _verdict_for(thread_key, query, fighter_id, on_date or date.today(), target_jurisdiction)
+    return _verdict_for(
+        thread_key,
+        query,
+        fighter_id,
+        on_date or date.today(),
+        target_jurisdiction,
+        identity_note="human pick (disambiguation)",
+    )
 
 
 def _verdict_for(
@@ -98,11 +110,13 @@ def _verdict_for(
     fighter_id: str,
     on_date: date,
     target_jurisdiction: str | None,
+    identity_note: str = "",
 ) -> ClearanceVerdict:
     """Rule verdict, then second-source corroboration (boxing-data.com). Corroboration
     can only TIGHTEN: a live record disagreement withholds a CLEAR; unavailable/unmatched
     live data annotates and the verdict stands on the commission data on file. The ledger
-    records the FINAL decision plus the full corroboration evidence."""
+    records the FINAL decision, the full corroboration evidence, and HOW the identity was
+    certified (conformal singleton / legacy bands / human pick)."""
     v = evaluate_fighter_clearance(fighter_id, on_date, target_jurisdiction)
     fighter = get_fighter(fighter_id)
     name = fighter.full_name if fighter else "unknown"
@@ -122,10 +136,16 @@ def _verdict_for(
             "target_jurisdiction": target_jurisdiction,
             "applied_rules": applied,
             "corroboration": corr.model_dump() if corr else None,
+            "identity": identity_note or None,
         },
     )
     SESSION_STORE.record_written(thread_key, entry.seq)
     verdict = from_rule_verdict(query, fighter_id, name, v, entry.seq)
     return verdict.model_copy(
-        update={"status": decision, "applied_rules": applied, "corroboration": corr}
+        update={
+            "status": decision,
+            "applied_rules": applied,
+            "corroboration": corr,
+            "identity_note": identity_note,
+        }
     )

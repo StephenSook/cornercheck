@@ -108,6 +108,16 @@ def build_verdict_card(
             }
         )
 
+    if v.identity_note:
+        blocks.append(
+            {
+                "type": "context",
+                "elements": [
+                    {"type": "mrkdwn", "text": f":dart: Identity: {v.identity_note}"[:3000]}
+                ],
+            }
+        )
+
     stamp = (now or datetime.now()).strftime("%Y-%m-%d %H:%M")
     footer = (
         f"Data as of {stamp} | RTS mode: {search_mode} | decision support, human makes the call"

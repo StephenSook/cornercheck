@@ -4,6 +4,27 @@ One entry per spike verdict, frozen contract, or platform fact. Newest first wit
 
 ## Galaxy tier 1
 
+### 2026-06-09 - Conformal identity gate: the threshold stops being hand-tuned
+
+- er/conformal.py (exact split-conformal quantile, ~60 lines, cited: Vovk; Angelopoulos &
+  Bates 2023) + scripts/calibrate_er.py (deterministic seeded calibration against the REAL
+  fighters table, split BY FIGHTER, holdout coverage recorded) + committed artifact
+  er/calibration.json (alpha=0.05, n=4187, q_hat=0.0593, floor=0.9407, holdout 95.5%;
+  ORDER BY COLLATE "C" pins cross-machine determinism of the seeded generation).
+- DELIBERATE: no MAPIE/scikit-learn. The roadmap suggested MAPIE; split conformal on a 1D
+  nonconformity score is a quantile, and writing it out keeps the guarantee auditable and the
+  deps at zero (same discipline as the stdlib API client).
+- FROZEN CONTRACT: tighten-only composition in band(). Legacy CONFIRMED additionally requires
+  the conformal prediction set be a SINGLETON; 2+ plausible candidates demote to AMBIGUOUS
+  (Chow's reject rule, calibrated). The gate never promotes. Non-finite q_hat or unusable
+  artifact disables the gate WITH annotation (a single-candidate retrieval under an inf
+  quantile would otherwise read as a meaningless "singleton certification": caught in design
+  review, pinned by test).
+- SCOPE, stated honestly (the Z3 lesson): the guarantee is MARGINAL (not per-query) and
+  conditional on the true fighter being retrieved (retrieval is deliberately high-recall).
+- Now BOTH halves of the fail-closed claim carry formal backing: Z3 proves the rules half,
+  conformal coverage certifies the identity half.
+
 ### 2026-06-09 - Live boxing-data.com corroboration: a second source that can only tighten
 
 - sources/boxing_data.py (stdlib urllib client, Postgres response cache, recorded-real demo
