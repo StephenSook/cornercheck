@@ -4,6 +4,43 @@ One entry per spike verdict, frozen contract, or platform fact. Newest first wit
 
 ## Galaxy tier 2
 
+### 2026-06-09 - Cited cases 15 -> 54, coverage-honesty panel, prod case top-up
+
+- 39 new VERIFIED suspension cases merged into seeds/data/curated_suspensions.json. Sourcing
+  pipeline: 5 parallel research agents (different source modalities), 58 raw -> 40 deduped ->
+  39 survived adversarial re-fetch verification (every source_url re-fetched, quote checked,
+  refute-by-default; 1 rejected). 5 cases then spot-verified BY HAND against their pages
+  (incl. firecrawl for a bot-gated ESPN page). Spread: 28 MMA + 11 boxing, 9 jurisdictions,
+  all four types, judge-recognizable names (Jones, McGregor, Khabib, Canelo, Wilder, Fury,
+  Tyson) AND fresh 2025-2026 cases with active/recently-lapsed windows (Taira, Pimblett,
+  Brady/Edwards) that feed the roster monitor demo. Mike Tyson 1997 kept: the data honestly
+  says "license revoked"; modeled as indefinite administrative.
+- COVERAGE-HONESTY PANEL on App Home: live counts (cases, jurisdictions, fighters) + the
+  honesty line ("a CLEAR means no recorded suspension matched; commissions remain the source
+  of truth; not an exhaustive registry"). Fail-soft if the query breaks.
+- PROD CONVERGENCE: bootstrap now calls seed_db.top_up_cases() when the DB is already seeded:
+  ADDITIVE-ONLY, idempotent (keyed by fighter+start_date+jurisdiction, backed by a unique
+  index from migration 007 + ON CONFLICT DO NOTHING for concurrent-boot race safety),
+  ledgered as cases_topped_up. SCOPE: additions only; corrections to an existing case
+  (end_date, reason, sources) do NOT propagate and require a --force reseed.
+- IDENTITY-SPLIT GUARD (adversarial gate BLOCKER, fixed): case spellings that differ from
+  the roster ("T.J. Dillashaw" vs "TJ Dillashaw", "Julianna Peña" vs "Julianna Pena")
+  silently minted SHADOW fighters carrying the suspension while the real fighter read
+  clean: the human-pick path then steered to the real (clean) row, a false CLEAR one
+  click away. Fixed: the seeder fold-normalizes names (punctuation + diacritics) and
+  ATTACHES a spelling-variant case to the real roster row; ambiguous 2+ matches refuse
+  loudly. Deliberately NOT fuzzy: a first JW>=0.94 guard false-flagged "Ryan Garcia" vs
+  "Ryan Gracie" (different real people) and broke the seed; fold-equality has no such
+  false positives.
+- Conformal artifact recalibrated post-merge (case fighters join the population): n=4203,
+  floor=0.9436, holdout 95.1%.
+- JUDGE-QUESTION FRAMING (deliberate): an indefinite suspension with no RECORDED lifting
+  blocks forever (Jon Jones 2017, Sean O'Malley 2024 read DO_NOT_CLEAR today even though
+  both later fought). That is fail-closed semantics, not a data bug: the card cites the
+  recorded action, says "INDEFINITE (until cleared)", and directs to commission
+  verification. Ten false blocks beat one false clear; the lifting of a medical suspension
+  rarely makes the news, and the commission remains the source of truth.
+
 ### 2026-06-09 - Audit trail exports to a Slack Canvas (chain-verified at export time)
 
 - "Export to Canvas" button on the audit table (action export_audit_canvas). app/canvas.py

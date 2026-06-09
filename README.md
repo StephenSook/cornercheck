@@ -137,11 +137,11 @@ as reassurance.
 
 The identity half carries its own formal backing: the match threshold is not hand-tuned but
 **conformally calibrated** against the real fighter table (split conformal prediction; the
-nonconformity quantile over 4,187 real query/fighter pairs). A match is certified only when the
+nonconformity quantile over 4,203 real query/fighter pairs). A match is certified only when the
 calibrated prediction set is a singleton, so with 95% coverage (marginal, conditional on
 retrieval) the true fighter is in the set, and any statistically plausible runner-up forces a
 human pick: Chow's reject rule with a guarantee instead of a guess. The committed artifact's
-holdout estimate is 95.5%. The gate composes tighten-only: it can demote a confirmation, never
+holdout estimate is 95.1%. The gate composes tighten-only: it can demote a confirmation, never
 promote one.
 
 ```bash
@@ -153,7 +153,7 @@ uv run python scripts/calibrate_er.py --check   # recomputes the calibration and
 ```bash
 uv sync                       # install (Python 3.12)
 docker compose up -d          # local Postgres
-uv run python seeds/seed_db.py --force   # 4,107 real fighters + 15 cited suspension cases
+uv run python seeds/seed_db.py --force   # 4,107 real fighters + 54 cited suspension cases
 uv run pytest                 # 192 tests (live-marked tests excluded by default)
 uv run ruff check . && uv run mypy src tests
 ```

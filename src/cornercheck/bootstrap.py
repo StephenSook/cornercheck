@@ -39,6 +39,13 @@ def bootstrap_db() -> None:
         count = row[0] if row else 0
         if count > 0:
             log.info("bootstrap: DB already seeded (%d fighters)", count)
+            # Converge on newly curated cited cases without wiping anything: additive,
+            # idempotent, keyed by (fighter, start_date, jurisdiction).
+            mod = _load_seed_module()
+            if mod is not None and hasattr(mod, "top_up_cases"):
+                added = mod.top_up_cases()
+                if added:
+                    log.info("bootstrap: topped up %d new cited suspension cases", added)
             return
         mod = _load_seed_module()
         if mod is None:

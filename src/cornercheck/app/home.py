@@ -43,6 +43,25 @@ def _home_view() -> dict[str, Any]:
             "elements": [{"type": "mrkdwn", "text": f"Audit chain: {integrity} - {result.detail}"}],
         },
         {"type": "divider"},
+        {
+            "type": "header",
+            "text": {"type": "plain_text", "text": "Data coverage, honestly stated"},
+        },
+        {"type": "section", "text": {"type": "mrkdwn", "text": _coverage_text()}},
+        {
+            "type": "context",
+            "elements": [
+                {
+                    "type": "mrkdwn",
+                    "text": (
+                        "A CLEAR means no recorded suspension matched the cited cases on file; "
+                        "commissions remain the source of truth. Decision support over curated "
+                        "records, not an exhaustive national registry."
+                    ),
+                }
+            ],
+        },
+        {"type": "divider"},
         {"type": "header", "text": {"type": "plain_text", "text": "Recent decisions"}},
     ]
     if not entries:
@@ -70,6 +89,38 @@ def _home_view() -> dict[str, Any]:
             }
         )
     return {"type": "home", "blocks": blocks}
+
+
+def _coverage_text() -> str:
+    """Live coverage stats. Fail-soft: the home view must render even if this query
+    fails, just without the numbers."""
+    try:
+        with get_pool().connection() as conn:
+            n_f = conn.execute("SELECT count(*) FROM fighters").fetchone()
+            n_s = conn.execute("SELECT count(*) FROM suspensions").fetchone()
+            n_j = conn.execute("SELECT count(DISTINCT jurisdiction) FROM suspensions").fetchone()
+        ident = "identity on legacy bands (conformal calibration unavailable)"
+        try:
+            from cornercheck.er.conformal import load_gate
+
+            gate = load_gate()
+            if gate:
+                ident = (
+                    f"identity conformally calibrated at {gate.coverage_pct}% coverage (n={gate.n})"
+                )
+        except Exception:
+            log.exception("conformal stat failed; coverage panel keeps the DB counts")
+        return (
+            f"*{n_s[0] if n_s else '?'}* source-cited suspension cases across "
+            f"*{n_j[0] if n_j else '?'}* jurisdictions | "
+            f"*{n_f[0]:,}* fighters on file | "
+            f"live boxing-data corroboration (tighten-only) | {ident}"
+            if n_f
+            else "_Coverage stats unavailable right now._"
+        )
+    except Exception:
+        log.exception("coverage stats failed")
+        return "_Coverage stats unavailable right now._"
 
 
 def _recent_decisions() -> list[dict[str, Any]]:
