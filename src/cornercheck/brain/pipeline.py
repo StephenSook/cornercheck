@@ -38,6 +38,36 @@ def start_clearance(
     return from_resolution(query, d, r)
 
 
+def clear_card(
+    thread_key: str,
+    fighters: list[str],
+    on_date: date | None = None,
+    target_jurisdiction: str | None = None,
+) -> list[ClearanceVerdict]:
+    """Clear a whole fight card at once: the real matchmaker workflow. Each fighter runs
+    through the same fail-closed pipeline under an isolated sub-thread (so one fighter's
+    disambiguation never clobbers another's), and the batch is summarized in the ledger.
+    Every CLEAR/DO_NOT_CLEAR is individually ledgered by the per-fighter path."""
+    d = on_date or date.today()
+    verdicts = [
+        start_clearance(f"{thread_key}#card{i}", name, d, target_jurisdiction)
+        for i, name in enumerate(fighters)
+    ]
+    append_entry(
+        "cornercheck-card",
+        "card_check",
+        {
+            "thread_key": thread_key,
+            "on_date": d.isoformat(),
+            "target_jurisdiction": target_jurisdiction,
+            "fighters": [
+                {"query": v.query, "status": v.status, "fighter_id": v.fighter_id} for v in verdicts
+            ],
+        },
+    )
+    return verdicts
+
+
 def confirm_candidate(
     thread_key: str,
     fighter_id: str,

@@ -12,11 +12,13 @@ from datetime import date
 from slack_bolt import Assistant, BoltContext, Say, SetStatus, SetSuggestedPrompts
 from slack_sdk import WebClient
 
+from cornercheck.app.blocks.card_board import build_card_board
+from cornercheck.app.blocks.card_board import fallback_text as card_fallback
 from cornercheck.app.blocks.disambiguation_card import build_disambiguation_card
 from cornercheck.app.blocks.verdict_card import build_verdict_card, fallback_text
-from cornercheck.app.parse import parse_request
+from cornercheck.app.parse import parse_card, parse_request
 from cornercheck.brain.agent import BrainEvent, BrainTimeoutError, get_brain
-from cornercheck.brain.pipeline import start_clearance
+from cornercheck.brain.pipeline import clear_card, start_clearance
 from cornercheck.search.rts import injury_scan, spotlight
 
 log = logging.getLogger("cornercheck.assistant")
@@ -70,6 +72,21 @@ def _is_clearance_request(text: str) -> bool:
     return len(parse_request(text).fighter_query) >= 3
 
 
+_CARD_WORDS = ("card", "lineup", "line-up", "slate", "event", "matchups")
+
+
+def _is_card_request(text: str) -> bool:
+    """A whole-card check: either 2+ matchups, or an explicit card keyword, with >= 2 fighters.
+    A single-subject question with one 'vs' ('Is X good to fight vs Y?') is NOT a card; it
+    routes to the single-clearance path so the subject is not mangled onto a board."""
+    low = text.lower()
+    vs_count = len(re.findall(r"\bvs\.?\b|\bversus\b", low))
+    has_card_word = any(w in low for w in _CARD_WORDS)
+    if not (vs_count >= 2 or has_card_word):
+        return False
+    return len(parse_card(text).fighters) >= 2
+
+
 def _action_token(body: dict) -> str | None:
     return body.get("event", {}).get("assistant_thread", {}).get("action_token")
 
@@ -84,8 +101,14 @@ def on_thread_started(say: Say, set_suggested_prompts: SetSuggestedPrompts) -> N
     set_suggested_prompts(
         prompts=[
             {"title": "Check a fighter", "message": "Is Junior dos Santos cleared in Texas?"},
+            {
+                "title": "Check a whole card",
+                "message": (
+                    "Check this card in Texas: Merab Dvalishvili vs Junior dos Santos, "
+                    "Bruno Silva vs Geoff Neal"
+                ),
+            },
             {"title": "Ambiguous name", "message": "Is Bruno Silva cleared to fight?"},
-            {"title": "Verify the ledger", "message": "Is the audit chain intact?"},
         ]
     )
 
@@ -101,10 +124,34 @@ def on_user_message(
 ) -> None:
     text = (payload.get("text") or "").strip()
     thread_key = f"{payload.get('channel', '')}:{payload.get('thread_ts', payload.get('ts', ''))}"
+    if _is_card_request(text):
+        _handle_card(thread_key, text, say, set_status)
+        return
     if not _is_clearance_request(text):
         _handle_freeform(thread_key, text, body, say, set_status, client)
         return
     _handle_clearance(thread_key, text, body, say, set_status, client)
+
+
+def _handle_card(thread_key: str, text: str, say: Say, set_status: SetStatus) -> None:
+    """Whole-card review: every bout banded on one board, fail-closed per fighter."""
+    set_status("checking the whole card...")
+    parsed = parse_card(text)
+    if len(parsed.fighters) < 2:
+        say("I couldn't read a fight card. Try: _Check this card: A vs B, C vs D_")
+        return
+    say(f":checkered_flag: Checking *{len(parsed.fighters)} fighters*...")
+    try:
+        verdicts = clear_card(
+            thread_key, parsed.fighters, parsed.on_date, parsed.target_jurisdiction
+        )
+        say(
+            blocks=build_card_board(verdicts, parsed.event, parsed.on_date),
+            text=card_fallback(verdicts),
+        )
+    except Exception:
+        log.exception("card pipeline failed for thread=%s", thread_key)
+        say(FAIL_CLOSED_MESSAGE)
 
 
 def _handle_clearance(
