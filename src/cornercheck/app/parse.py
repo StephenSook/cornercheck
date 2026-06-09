@@ -114,6 +114,73 @@ def parse_request(text: str, today: date | None = None) -> ParsedRequest:
     return ParsedRequest(fighter_query=fighter_query, on_date=on_date, target_jurisdiction=target)
 
 
+@dataclass(frozen=True)
+class ParsedCard:
+    fighters: list[str]
+    on_date: date | None
+    target_jurisdiction: str | None
+    event: str | None
+
+
+_VS = re.compile(r"\s+(?:vs\.?|v\.?|versus)\s+", re.IGNORECASE)
+
+
+_LEADING_FRAMING = re.compile(
+    r"^((?:check|clear|cleared|clearance|please|the|whole|entire|review|all|is|are|can"
+    r"|could|will|would|my|these|this|card|lineup|line-up|slate|event|bouts?|fights?"
+    r"|fighters?)\s+)+",
+    re.IGNORECASE,
+)
+
+
+def parse_card(text: str) -> ParsedCard:
+    """Extract every fighter slot from a card lineup ('A vs B, C vs D'). Every slot becomes a
+    row, with NO dedup: two distinct fighters who share a display name (two real Bruno Silvas)
+    must each be checked, and each fails closed to NEEDS PICK. Bouts split on comma/newline
+    only (never the word 'and', which lives inside names like 'Anderson Silva'). Names are not
+    keyword-stripped mid-name, so 'California Kid' survives intact."""
+    raw = text.strip()
+    target = _find_jurisdiction(raw)
+    on_date = _find_date(raw)
+
+    event: str | None = None
+    body = raw
+    m = re.match(r"\s*([A-Za-z][\w .'#-]{1,38}?)\s*:\s*(.+)", raw, re.DOTALL)
+    if m:
+        label, rest = m.group(1).strip(), m.group(2)
+        looks_like_bouts = bool(_VS.search(rest)) or rest.count(",") >= 1
+        if re.search(
+            r"\b(card|lineup|line-up|slate|event|check|clear|bouts?|fights?)\b", label, re.I
+        ):
+            body = rest  # a framing prefix like "check this card:"
+        elif looks_like_bouts and not _find_jurisdiction(label):
+            event, body = label, rest  # an event label like "UFC 310:"
+        elif looks_like_bouts:
+            body = rest  # a jurisdiction-y prefix; drop it, no event
+
+    # strip a TRAILING locative jurisdiction phrase ('... in Texas'), never mid-name
+    for kw in _JURISDICTIONS:
+        body = re.sub(rf"\b(in|for|at)\s+{re.escape(kw)}\b\s*$", " ", body, flags=re.IGNORECASE)
+    body = re.sub(r"\b\d{4}-\d{2}-\d{2}\b", " ", body)
+
+    fighters: list[str] = []
+    for bout in re.split(r"[,\n;]", body):
+        for side in _VS.split(bout):
+            name = _clean_card_side(side)
+            if len(name) >= 2:  # keep short legit names ('AJ'); only pure-empty sides drop out
+                fighters.append(name)
+    return ParsedCard(fighters=fighters, on_date=on_date, target_jurisdiction=target, event=event)
+
+
+def _clean_card_side(side: str) -> str:
+    """Clean a single bout side to a fighter name WITHOUT touching the name's interior:
+    strip surrounding punctuation and a run of leading framing words only."""
+    s = side.strip().strip("\"'()[]").strip()
+    s = _LEADING_FRAMING.sub("", s)
+    s = re.sub(r"[^\w\s'.-]", " ", s)
+    return re.sub(r"\s+", " ", s).strip()
+
+
 def _find_jurisdiction(text: str) -> str | None:
     low = text.lower()
     for kw, canon in _JURISDICTIONS.items():

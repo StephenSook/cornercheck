@@ -2,6 +2,27 @@
 
 One entry per spike verdict, frozen contract, or platform fact. Newest first within each stage.
 
+## Galaxy tier 1
+
+### 2026-06-09 - Whole-fight-card clearance: the matchmaker's real workflow, fail-closed per slot
+
+- New surface: paste a card ("UFC 310: A vs B, C vs D") and every bout lands on one Block Kit
+  board, each fighter banded CLEAR / DO NOT CLEAR / NEEDS PICK with blockers cited. parse_card
+  (app/parse.py) extracts fighter slots; clear_card (brain/pipeline.py) fans each slot through
+  the proven start_clearance pipeline under an isolated `{thread_key}#cardN` sub-thread (one
+  fighter's disambiguation never clobbers another's) and ledgers the batch as `card_check`;
+  build_card_board (app/blocks/card_board.py) renders from the deterministic verdicts only.
+- FROZEN CONTRACT: parse_card does NO dedup. Two distinct fighters sharing a display name (two
+  real Bruno Silvas on one card) must each get a row; each fails closed to NEEDS PICK. Dedup
+  here is a fail-open: a never-checked fighter.
+- Adversarial gate (silent-failure-hunter) caught 5 fail-open parser bugs pre-merge: same-name
+  dedup dropping a fighter; mid-name keyword stripping ("California Kid" mangled); silent
+  short-name drops ("AJ"); single-"vs" question misrouted onto a board; "and"-split fragmenting
+  names ("Anderson Silva"). All fixed, each pinned by a regression test (tests/unit/test_card.py).
+- Routing rule: a card needs 2+ "vs"/"versus" or an explicit card keyword AND 2+ parsed
+  fighters; single-vs questions stay on the single-clearance path. Second gate (code-reviewer)
+  verified signatures, fail-closed handler parity, and per-fighter ledgering independently: CLEAN.
+
 ## Demo + submission prep
 
 ### 2026-06-08 - Demo script + Devpost writeup, adversarial fact-check caught real errors
