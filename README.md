@@ -154,7 +154,7 @@ uv run python scripts/calibrate_er.py --check   # recomputes the calibration and
 uv sync                       # install (Python 3.12)
 docker compose up -d          # local Postgres
 uv run python seeds/seed_db.py --force   # 4,107 real fighters + 15 cited suspension cases
-uv run pytest                 # 178 tests (live-marked tests excluded by default)
+uv run pytest                 # 192 tests (live-marked tests excluded by default)
 uv run ruff check . && uv run mypy src tests
 ```
 

@@ -15,6 +15,8 @@ def _rows_from_entries(entries: list[dict[str, Any]]) -> list[list[dict[str, Any
     rows = [header]
     for e in entries[:20]:
         p = e.get("payload") or {}
+        if not isinstance(p, dict):
+            p = {}  # a malformed row must never take the whole audit view down
         when = (e.get("ts") or "")[:16].replace("T", " ")
         rows.append(
             [
@@ -60,6 +62,19 @@ def build_audit_table(
         blocks.append(
             {"type": "section", "text": {"type": "mrkdwn", "text": "_No ledger entries yet._"}}
         )
+    blocks.append(
+        {
+            "type": "actions",
+            "elements": [
+                {
+                    "type": "button",
+                    "text": {"type": "plain_text", "text": "Export to Canvas"},
+                    "action_id": "export_audit_canvas",
+                    "value": "audit",
+                }
+            ],
+        }
+    )
     return blocks
 
 

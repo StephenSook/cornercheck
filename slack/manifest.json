@@ -44,7 +44,9 @@
         "channels:history",
         "channels:read",
         "search:read.public",
-        "users:read"
+        "users:read",
+        "canvases:write",
+        "files:read"
       ]
     }
   },
