@@ -2,6 +2,27 @@
 
 One entry per spike verdict, frozen contract, or platform fact. Newest first within each stage.
 
+## Demo + submission prep
+
+### 2026-06-08 - Demo script + Devpost writeup, adversarial fact-check caught real errors
+
+- docs/demo-script.md (10-beat video script: VO lines, camera on/off, recording guide) +
+  docs/devpost-submission.md. Forced two parallel reviewers (copy/rubric + adversarial
+  fact-check). Both high-value.
+- FACT-CHECK CAUGHT (all fixed): (1) 15 U.S.C. 6306(b) is BOXING-ONLY (Muhammad Ali Boxing
+  Reform Act); the engine emitted it on every cross-jurisdiction suspension incl. MMA fighters
+  (dos Santos demo + 10/15 cases are MMA). A legal overreach a domain judge catches instantly.
+  Fixed in CODE: sport-aware consultation note (boxing binding; MMA framed as the gap, which
+  STRENGTHENS the thesis). (2) Tim Hague: the 2024 inquiry recommended a single REGISTRY, not
+  a "cross-commission view"; his suspension had lapsed, he was a late replacement. Cross-
+  jurisdiction is OUR US extension, not the inquiry's words. Corrected. (3) "Kautz Type 2" is
+  the wrong cell (Type 2 = Symbolic[Neuro], we are LLM-outer); dropped the number, kept
+  "neurosymbolic". (4) Z3 claim scoped to "the suspension-window logic; if a suspension is
+  active, never CLEAR" (not the whole system). README + both docs + engine updated.
+- DOMAIN FACT (reusable): 15 U.S.C. 6306(b) consult-first is professional BOXING only; MMA has
+  no federal equivalent. Use the MMA gap as a strength, never cite 6306 as binding for MMA.
+- AI-tone: zero em-dashes, no blocklist words across all judge-facing docs. 114 tests green.
+
 ## Stage 7
 
 ### 2026-06-08 - Frontier layer: Z3 verification SHIPPED, and it caught a real fail-open bug
