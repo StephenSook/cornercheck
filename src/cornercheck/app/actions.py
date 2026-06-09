@@ -8,12 +8,18 @@ from slack_sdk import WebClient
 
 from cornercheck.app.blocks.audit_table import build_audit_table, fallback_text
 from cornercheck.app.blocks.disambiguation_card import decode
+from cornercheck.app.blocks.proof_card import build_proof_card
+from cornercheck.app.blocks.proof_card import fallback_text as proof_fallback
 from cornercheck.app.blocks.verdict_card import build_verdict_card
 from cornercheck.app.blocks.verdict_card import fallback_text as verdict_fallback
 from cornercheck.brain.pipeline import confirm_candidate
 from cornercheck.db.pool import get_pool
 from cornercheck.ledger.verify import verify_chain
 from cornercheck.search.rts import injury_scan
+from cornercheck.verification.z3_safety import (
+    counterexample_when_start_boundary_loosened,
+    prove_engine_equivalent_to_spec,
+)
 
 log = logging.getLogger("cornercheck.actions")
 
@@ -61,6 +67,31 @@ def register_actions(app: App) -> None:
         except Exception:
             log.exception("select_fighter failed: %s", body.get("actions"))
             _reply(client, channel, thread_ts, _FAIL_CLOSED)
+
+    @app.action("view_safety_proof")
+    def on_view_proof(ack: Ack, body: dict, client: WebClient) -> None:
+        """Runs the REAL Z3 proof live (milliseconds) plus the non-vacuity control."""
+        ack()
+        channel, thread_ts = _thread_coords(body)
+        try:
+            positive = prove_engine_equivalent_to_spec()
+            control = counterexample_when_start_boundary_loosened()
+            _reply(
+                client,
+                channel,
+                thread_ts,
+                proof_fallback(positive),
+                build_proof_card(positive, control),
+            )
+        except Exception:
+            log.exception("view_safety_proof failed")
+            _reply(
+                client,
+                channel,
+                thread_ts,
+                ":rotating_light: Could not run the safety proof right now. Treat the logic "
+                "as unproven and retry.",
+            )
 
     @app.action("view_audit_trail")
     def on_view_audit(ack: Ack, body: dict, client: WebClient) -> None:

@@ -135,7 +135,13 @@ def build_verdict_card(
                     "text": {"type": "plain_text", "text": "View audit trail"},
                     "action_id": "view_audit_trail",
                     "value": str(v.ledger_seq or 0),
-                }
+                },
+                {
+                    "type": "button",
+                    "text": {"type": "plain_text", "text": "See the safety proof"},
+                    "action_id": "view_safety_proof",
+                    "value": str(v.ledger_seq or 0),
+                },
             ],
         }
     )

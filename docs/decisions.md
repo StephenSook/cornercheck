@@ -2,6 +2,24 @@
 
 One entry per spike verdict, frozen contract, or platform fact. Newest first within each stage.
 
+## Galaxy tier 2
+
+### 2026-06-09 - In-product live Z3 proof button: the proof becomes a clickable surface
+
+- Every verdict card now carries "See the safety proof" (action view_safety_proof): the
+  handler runs prove_engine_equivalent_to_spec LIVE (~4 ms) plus the non-vacuity control
+  (loosened start boundary must yield a counterexample), and app/blocks/proof_card.py
+  renders from ProofResult fields only.
+- FROZEN CONTRACT: a failed proof must NEVER render as reassurance. healthy requires
+  EXACTLY (positive PROVEN, control COUNTEREXAMPLE); every other combination renders the
+  PROOF FAILED alarm ("treat every CLEAR as unsafe"). Probed exhaustively in review (13
+  unhealthy combinations all alarm). Handler exception fails closed ("treat unproven").
+- Scope honesty on the card: suspension-window logic by Z3; identity separately by
+  conformal calibration; human makes the call.
+- Review also fixed two pre-existing z3_safety.py 'unknown' branches (crash instead of
+  UNKNOWN; control mislabeling unknown as PROVEN); both were already fail-closed at the
+  card layer, now also honest at the source.
+
 ## Galaxy tier 1
 
 ### 2026-06-09 - Proactive roster monitor: deterministic daily digest, ledgered alerting
