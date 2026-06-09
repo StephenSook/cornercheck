@@ -96,11 +96,15 @@ def prove_engine_equivalent_to_spec() -> ProofResult:
     end = z3.Int("end")
     open_ended = z3.Bool("open_ended")
     s.add(engine_active(d, start, end, open_ended) != _spec_must_block(d, start, end, open_ended))
-    if s.check() == z3.unsat:
+    result = s.check()
+    if result == z3.unsat:
         return ProofResult(
             "PROVEN", "unsat: engine membership == independent safety spec, for all inputs."
         )
-    return ProofResult("COUNTEREXAMPLE", "engine and spec disagree", _model_dict(s.model()))
+    if result == z3.sat:
+        return ProofResult("COUNTEREXAMPLE", "engine and spec disagree", _model_dict(s.model()))
+    # z3 'unknown' has no model; touching s.model() here would raise instead of reporting.
+    return ProofResult("UNKNOWN", "Z3 returned unknown")
 
 
 def counterexample_pre_fix_malformed_range() -> ProofResult:
@@ -137,12 +141,15 @@ def counterexample_when_start_boundary_loosened() -> ProofResult:
     loosened_active = z3.And(d > start, z3.Or(open_ended, d <= end, end < start))  # BUG: > not >=
     s.add(z3.Not(loosened_active))
     s.add(_spec_must_block(d, start, end, open_ended))
-    if s.check() == z3.sat:
+    result = s.check()
+    if result == z3.sat:
         ce = _model_dict(s.model())
         return ProofResult(
             "COUNTEREXAMPLE", f"loosened start boundary clears day-one suspension: {ce}", ce
         )
-    return ProofResult("PROVEN", "no counterexample (unexpected)")
+    if result == z3.unsat:
+        return ProofResult("PROVEN", "no counterexample (unexpected)")
+    return ProofResult("UNKNOWN", "Z3 returned unknown")
 
 
 def prove_identity_gate() -> ProofResult:

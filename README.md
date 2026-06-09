@@ -90,8 +90,10 @@ flowchart TD
 ```
 
 All three Slack agent surfaces are load-bearing: the **Assistant** pane and **Block Kit** (verdict
-cards, a disambiguation picker, a Data Table audit view), one **Model Context Protocol** server
-the Claude agent orchestrates, and **Real-Time Search** for the injury signal.
+cards, a disambiguation picker, a Data Table audit view, and a "See the safety proof" button that
+runs the Z3 proof live), one **Model Context Protocol** server the Claude agent orchestrates, and
+**Real-Time Search** for the injury signal. **Incoming Webhooks** carry the daily roster-monitor
+digest to an ops channel.
 
 **Three independent fail-closed locks** each block a wrong clearance, so no single failure can
 produce one: an in-tool engine re-check (refused writes are themselves ledgered), a deterministic
@@ -127,6 +129,11 @@ a suspended fighter, now fixed to fail closed.
 ```bash
 uv run python scripts/z3_proof_demo.py   # proves the invariant, then plants a bug and watches Z3 catch it
 ```
+
+The proof is also runnable IN the product: every verdict card carries a "See the safety proof"
+button that runs the live Z3 check (about 4 ms) plus a non-vacuity control (a deliberately
+loosened boundary that must yield a counterexample). A failed proof renders as an alarm, never
+as reassurance.
 
 The identity half carries its own formal backing: the match threshold is not hand-tuned but
 **conformally calibrated** against the real fighter table (split conformal prediction; the
