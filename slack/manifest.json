@@ -46,7 +46,8 @@
         "search:read.public",
         "users:read",
         "canvases:write",
-        "files:read"
+        "files:read",
+        "pins:write"
       ]
     }
   },
@@ -64,6 +65,52 @@
     },
     "org_deploy_enabled": false,
     "socket_mode_enabled": true,
-    "token_rotation_enabled": false
+    "token_rotation_enabled": false,
+    "function_runtime": "remote"
+  },
+  "functions": {
+    "check_fighter_clearance": {
+      "title": "Check fighter clearance",
+      "description": "Fail-closed clearance check: CLEAR, DO_NOT_CLEAR, NEEDS_PICK, or NOT_FOUND, with the blocking record cited. Never auto-clears.",
+      "input_parameters": {
+        "fighter_name": {
+          "type": "string",
+          "title": "Fighter name",
+          "description": "Full name of the fighter to check",
+          "is_required": true,
+          "name": "fighter_name"
+        },
+        "jurisdiction": {
+          "type": "string",
+          "title": "Jurisdiction (optional)",
+          "description": "Where the bout would happen, e.g. Texas",
+          "is_required": false,
+          "name": "jurisdiction"
+        }
+      },
+      "output_parameters": {
+        "status": {
+          "type": "string",
+          "title": "Clearance status",
+          "description": "CLEAR, DO_NOT_CLEAR, NEEDS_PICK, or NOT_FOUND",
+          "is_required": true,
+          "name": "status"
+        },
+        "detail": {
+          "type": "string",
+          "title": "Detail",
+          "description": "The cited blocker or the decision-support note",
+          "is_required": true,
+          "name": "detail"
+        },
+        "fighter": {
+          "type": "string",
+          "title": "Fighter",
+          "description": "The resolved fighter name",
+          "is_required": false,
+          "name": "fighter"
+        }
+      }
+    }
   }
 }

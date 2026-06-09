@@ -4,6 +4,21 @@ One entry per spike verdict, frozen contract, or platform fact. Newest first wit
 
 ## Galaxy tier 2
 
+### 2026-06-09 - Workflow Builder custom step: the verdict as a building block
+
+- app/workflow_step.py + manifest `functions.check_fighter_clearance` (inputs fighter_name
+  required + jurisdiction optional; outputs status/detail/fighter) + settings
+  function_runtime=remote. Any workflow can branch on the SAME deterministic verdict the
+  assistant gives; every check ledgered by the same pipeline.
+- FROZEN CONTRACT for automation: the step NEVER auto-clears and never resolves ambiguity
+  itself. NEEDS_PICK/NOT_FOUND return as explicit statuses with "NOT cleared" detail, and
+  any internal error calls fail(), which HALTS the workflow: a halted workflow cannot book
+  a fighter. Pure outputs mapping unit-tested per status.
+- Manifest batch (ONE reinstall covers everything): functions block + function_runtime +
+  pins:write (lets judge_canvas.py pin the tour). HUMAN STEP 4f: re-apply
+  slack/manifest.json, Save, Reinstall to workspace; the step then appears in Workflow
+  Builder under the CornerCheck app.
+
 ### 2026-06-09 - WAVE B docs: demo script v2.1 + Devpost v2, judge-panel fact-checked
 
 - Both judge-facing docs rewritten around the full 9-feature reality, then run through an
