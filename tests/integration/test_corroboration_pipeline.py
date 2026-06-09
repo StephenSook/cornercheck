@@ -11,28 +11,45 @@ from cornercheck.db.pool import get_pool
 from cornercheck.sources import boxing_data, corroborate
 
 TEST_NAME = "Zz Corrobo Testboxer"
+TEST_MMA_NAME = "Zz Corrobo Testgrappler"
 
 
-@pytest.fixture
-def test_boxer(db: str) -> Iterator[str]:
-    """A throwaway boxing fighter WITH a record on file (10-0-0) and no suspensions."""
+def _insert_fighter(name: str, sport: str) -> str:
     fid = str(uuid.uuid4())
     with get_pool().connection() as conn:
         conn.execute(
             "INSERT INTO fighters (id, full_name, weight_class, wins, losses, draws,"
             " sport, primary_jurisdiction, source)"
-            " VALUES (%s, %s, 'Lightweight', 10, 0, 0, 'boxing', 'Texas', 'test-fixture')",
-            (fid, TEST_NAME),
+            " VALUES (%s, %s, 'Lightweight', 10, 0, 0, %s, 'Texas', 'test-fixture')",
+            (fid, name, sport),
         )
+    return fid
+
+
+def _delete_fighter(fid: str, name: str) -> None:
+    with get_pool().connection() as conn:
+        conn.execute("DELETE FROM fighters WHERE id = %s", (fid,))
+        conn.execute("DELETE FROM boxing_search_cache WHERE query_name = %s", (name.casefold(),))
+
+
+@pytest.fixture
+def test_boxer(db: str) -> Iterator[str]:
+    """A throwaway boxing fighter WITH a record on file (10-0-0) and no suspensions.
+    Self-contained: CI's Postgres is migrated but unseeded."""
+    fid = _insert_fighter(TEST_NAME, "boxing")
     try:
         yield fid
     finally:
-        with get_pool().connection() as conn:
-            conn.execute("DELETE FROM fighters WHERE id = %s", (fid,))
-            conn.execute(
-                "DELETE FROM boxing_search_cache WHERE query_name = %s",
-                (TEST_NAME.casefold(),),
-            )
+        _delete_fighter(fid, TEST_NAME)
+
+
+@pytest.fixture
+def test_mma_fighter(db: str) -> Iterator[str]:
+    fid = _insert_fighter(TEST_MMA_NAME, "mma")
+    try:
+        yield fid
+    finally:
+        _delete_fighter(fid, TEST_MMA_NAME)
 
 
 def _live_hit(wins: int, losses: int = 0, draws: int = 0) -> list[dict]:
@@ -84,13 +101,15 @@ def test_consistent_record_stays_clear_with_live_note(
     assert v.corroboration.live_record == "10-0-0"
 
 
-def test_mma_fighter_never_triggers_a_live_call(db: str, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_mma_fighter_never_triggers_a_live_call(
+    test_mma_fighter: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
     def boom(name: str) -> None:
         raise AssertionError("live source must not be called for MMA fighters")
 
     monkeypatch.setattr(corroborate, "cached_search", boom)
-    v = start_clearance("t#corr4", "Merab Dvalishvili")
-    assert v.status in ("CLEAR", "DO_NOT_CLEAR")
+    v = start_clearance("t#corr4", TEST_MMA_NAME)
+    assert v.status == "CLEAR"
     assert v.corroboration is not None and v.corroboration.status == "NOT_APPLICABLE"
 
 
