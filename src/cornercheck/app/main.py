@@ -45,6 +45,12 @@ def main() -> None:
 
         bootstrap_db()  # self-provision the deployed DB on first boot
 
+    # Proactive roster monitor: deterministic daily digest (window math + ledger diffs).
+    # Independent of Slack tokens (webhook push), so it starts in every mode.
+    from cornercheck.monitor import start_monitor_thread
+
+    start_monitor_thread()
+
     # Degrade gracefully if Slack secrets aren't set yet: the landing URL stays up while the
     # operator adds tokens in the dashboard, instead of crash-looping the deploy.
     if not (settings.slack_bot_token and settings.slack_app_token):

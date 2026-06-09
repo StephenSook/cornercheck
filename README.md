@@ -98,6 +98,15 @@ produce one: an in-tool engine re-check (refused writes are themselves ledgered)
 PreToolUse hook, and a pipeline whose card renders only from the engine, never from model prose.
 See [`docs/architecture.md`](docs/architecture.md) for the full write-up.
 
+**The agent watches the roster, not just the question.** A daily in-process monitor re-checks
+every suspension window (lapsing within 14 days, lapsed within the last 7: the failure mode that
+killed Tim Hague was a lapsed window nobody re-verified) and diffs the ledger and the suspensions
+table since its own last run (new DO NOT CLEAR verdicts, live-record disagreements, newly filed
+suspensions). Every
+trigger is deterministic arithmetic; no model decides or phrases an alert, and quiet days send
+nothing. Each run is itself written to the append-only ledger, and the digest pushes to an ops
+channel via incoming webhook, fail-quiet.
+
 **A live second source corroborates, one-way.** Boxing verdicts are checked against the live
 boxing-data.com record (cached, deterministic comparison, no LLM involved). A disagreement
 (the live source showing more bouts than the record on file, the classic stale-record failure)
@@ -138,7 +147,7 @@ uv run python scripts/calibrate_er.py --check   # recomputes the calibration and
 uv sync                       # install (Python 3.12)
 docker compose up -d          # local Postgres
 uv run python seeds/seed_db.py --force   # 4,107 real fighters + 15 cited suspension cases
-uv run pytest                 # 168 tests (live-marked tests excluded by default)
+uv run pytest                 # 178 tests (live-marked tests excluded by default)
 uv run ruff check . && uv run mypy src tests
 ```
 

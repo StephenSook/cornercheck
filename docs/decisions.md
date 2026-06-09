@@ -4,6 +4,39 @@ One entry per spike verdict, frozen contract, or platform fact. Newest first wit
 
 ## Galaxy tier 1
 
+### 2026-06-09 - Proactive roster monitor: deterministic daily digest, ledgered alerting
+
+- src/cornercheck/monitor.py: daily in-process daemon thread (gate = the LEDGER's last
+  monitor_run timestamp, so restarts never double-fire and never skip a due run) + CLI
+  entrypoint (`python -m cornercheck.monitor`) for an external cron later.
+- FROZEN CONTRACT (per the gimmicks-to-avoid list): every trigger DETERMINISTIC. Window
+  arithmetic (end_date within [today, today+14] lapsing; [today-7, today-1] lapsed: the Tim
+  Hague mode) + ledger diffs since the last run (DO_NOT_CLEAR decisions, corroboration
+  DISAGREED, suspensions.created_at). No LLM decides, phrases, or filters an alert. Quiet
+  days send NOTHING (format_alert returns None on empty findings; no synthetic cheer).
+- Auditable alerting: every run writes a monitor_run ledger entry (findings + alerted +
+  posted), so the alert history is itself hash-chained. "Since last run" reads the ledger,
+  not mutable state.
+- Push = Slack incoming webhook (OPS_WEBHOOK_URL), fail-quiet: unset/unreachable still
+  ledgers and logs; monitoring can never crash the service. In-process over a Render cron:
+  zero new infra and cost; the CLI entry keeps the cron option open.
+- HUMAN STEP (board 4c): Stephen creates the #cornercheck-ops incoming webhook and sets
+  OPS_WEBHOOK_URL in .env + Render. Until then the monitor runs and ledgers, push disabled.
+- Adversarial gate caught pre-merge (all fixed + pinned): (1) BLOCKER, a wall-clock "since"
+  watermark had a PERMANENT silent blind spot (anything committed during the gather-to-
+  ledger-write window, including the webhook round-trip, was missed forever while coverage
+  looked contiguous); fixed with a seq watermark captured in the gather snapshot (seq order
+  is commit order under the chain's advisory lock, so `seq > prior` is exact). (2) A missing
+  ledger HMAC key would have pushed an identical un-auditable digest EVERY HOUR; fixed with
+  a preflight (alerting that cannot be ledgered must not fire) + a duplicate-digest memo.
+  (3) A malformed webhook URL raised outside the try and leaked the secret URL into logs
+  hourly; fixed (constructed inside try, error logged without echoing).
+- Documented semantics: first run baselines the diff at 24h ago; indefinite (until cleared)
+  suspensions have no window to lapse, are excluded from window scans (`AND NOT indefinite`),
+  and surface as a standing count line whenever a digest fires anyway (never alone: quiet
+  days stay quiet); "today" is the UTC date, which can only read a window as lapsed EARLY
+  (the safe direction).
+
 ### 2026-06-09 - Conformal identity gate: the threshold stops being hand-tuned
 
 - er/conformal.py (exact split-conformal quantile, ~60 lines, cited: Vovk; Angelopoulos &
