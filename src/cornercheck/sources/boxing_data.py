@@ -28,7 +28,9 @@ _HOST = "boxing-data-api.p.rapidapi.com"
 # The origin's Cloudflare bans default Python user agents (error 1010); a product UA passes.
 _UA = "cornercheck/1.0 (+https://cornercheck.onrender.com)"
 _TIMEOUT_S = 6.0
-_CACHE_TTL_DAYS = 7
+# Career records change only when a fighter actually fights; 21 days keeps the demo
+# period warm on one live call per boxer while staying honest for record data.
+_CACHE_TTL_DAYS = 21
 _FIXTURES = Path(__file__).parent / "fixtures" / "boxing_data"
 
 

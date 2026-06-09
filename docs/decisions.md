@@ -4,6 +4,27 @@ One entry per spike verdict, frozen contract, or platform fact. Newest first wit
 
 ## Galaxy tier 2
 
+### 2026-06-09 - The deployed URL becomes a live public dashboard
+
+- app/static/dashboard.html (committed, self-contained; Barlow Condensed + IBM Plex Mono,
+  bout-sheet aesthetic) + app/dashboard.py + rewired web.py routes: `/` dashboard,
+  `/api/stats` (live DB counts + chain verified + conformal gate + last monitor run),
+  `/api/proof` (runs the REAL Z3 equivalence proof + non-vacuity control per request,
+  ~5ms, healthy ONLY on the exact PROVEN+COUNTEREXAMPLE pair), `/healthz` unchanged.
+  The judge's first click now lands on a living, self-verifying system.
+- FAIL-SOFT per section: DB down -> page renders with unavailable markers, stats return
+  partial JSON, never 500; handler crashes return fixed JSON, never a stack trace.
+- Adversarial gate caught pre-merge (all fixed + pinned): (1) the chain-status fail-soft
+  path echoed RAW EXCEPTION TEXT (DB host:port class) to the public JSON; (2) uncached
+  /api/stats was a DoS lever against the SHARED clearance pool (count(*) scans + full
+  chain re-verification per request, abandoned check-threads parking on the pool's 30s
+  queue) -> 30s in-process result cache + 2s pool timeout for dashboard reads; (3) the
+  default Server header fingerprinted the exact Python version; (4) a transient page-read
+  failure permanently poisoned the lru_cache with the fallback; (5) HEAD returned 501 to
+  uptime monitors; unknown paths returned false 200s.
+- boxing cache TTL 7 -> 21 days (career records change only when a fighter fights; keeps
+  the demo period warm on one live call per boxer).
+
 ### 2026-06-09 - Cited cases 15 -> 54, coverage-honesty panel, prod case top-up
 
 - 39 new VERIFIED suspension cases merged into seeds/data/curated_suspensions.json. Sourcing
