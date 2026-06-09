@@ -15,11 +15,20 @@ FROM fighters
 WHERE full_name %% %(q)s
    OR full_name ILIKE '%%' || %(q)s || '%%'
    OR lower(full_name) = lower(%(q)s)
-LIMIT 25
+ORDER BY (lower(full_name) = lower(%(q)s)) DESC, similarity(full_name, %(q)s) DESC
+LIMIT 50
 """
+# The ORDER BY is load-bearing for fail-closed identity: exact-name matches sort FIRST,
+# so two fighters sharing the queried name can never be split by the LIMIT (an adversarial
+# review demonstrated that an unordered LIMIT let a crowd of partial matches push a
+# same-name twin out of the candidate set, and the banding layer then "confirmed" the
+# survivor as unique). Trigram similarity orders the rest.
 
 
-def _score(query: str, name: str) -> float:
+def score_names(query: str, name: str) -> float:
+    """The one name-similarity function: used live for banding and offline by
+    scripts/calibrate_er.py, so the conformal guarantee calibrates the exact score
+    it gates."""
     q, n = " ".join(query.lower().split()), " ".join(name.lower().split())
     if q == n:
         return 1.0
@@ -37,7 +46,7 @@ def retrieve_candidates(query: str) -> list[Candidate]:
             record=f"{r[3]}-{r[4]}-{r[5]}",
             sport=r[6],
             jurisdiction=r[7],
-            score=_score(query, r[1]),
+            score=score_names(query, r[1]),
         )
         for r in rows
     ]
