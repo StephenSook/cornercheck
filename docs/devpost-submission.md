@@ -1,101 +1,139 @@
-# CornerCheck, Devpost submission
+# CornerCheck, Devpost submission (v2)
 
 **Track:** Slack Agent for Good
-**Live status:** https://cornercheck.onrender.com (the agent itself runs inside Slack; this page confirms it is up). To use it directly, request a sandbox invite.
+**Live:** https://cornercheck.onrender.com (the live public dashboard: real database stats,
+the audit chain verified at page load, and the Z3 safety proof anyone can run in
+milliseconds; the agent itself runs inside Slack). Judge sandbox access provided per the
+submission requirements.
 **Code:** https://github.com/StephenSook/cornercheck
 
 ---
 
 ## Tagline
 
-A Slack agent that catches the cross-jurisdiction medical suspension a fight team would
-otherwise miss, and refuses to clear a fighter when it cannot be sure who they are.
+The agent that refuses to guess: fail-closed fighter-safety clearance inside Slack, with a
+formally proven rule core, statistically certified identity, and an audit trail you can hand
+to a commission.
 
 ## Inspiration
 
-In 2017, boxer Tim Hague died after a knockout in Edmonton. His medical suspension had lapsed
-only days earlier, and he fought as a late replacement. The 2024 fatality inquiry called for a
-single registry of fighters' medical and bout histories, which still does not exist. The
-problem is worse across US state lines, where medical suspensions do not reliably travel
-between commissions. For professional boxing, federal law (15 U.S.C. 6306(b)) requires the
-licensing commission to consult the suspending one first, a step that is rarely performed in
-practice; for MMA there is no federal rule at all. Fight operations already coordinate in
-Slack. So the check belongs there too.
+In 2017, fighter Tim Hague died after a knockout in a boxing match in Edmonton. His medical
+suspension had lapsed only days earlier, and he fought as a late replacement. The 2024
+fatality inquiry called for a single registry of fighters' medical and bout histories, which
+still does not exist. The problem is worse across US state lines, where medical suspensions
+do not reliably travel between commissions. For professional boxing, federal law
+(15 U.S.C. 6306(b)) requires the licensing commission to consult the suspending one first;
+for MMA there is no federal rule at all. Fight operations already coordinate in Slack. So the
+check belongs there too.
 
 ## What it does
 
-You ask CornerCheck whether a fighter is cleared to compete. It does four things:
+**Ask about one fighter, or paste a whole fight card.** Every bout lands on one board, banded
+CLEAR, DO NOT CLEAR, or NEEDS PICK, with the blocking record cited. Underneath that surface:
 
-1. **Catches cross-jurisdiction suspensions** against curated, source-cited public commission
-   records. When the booking commission differs from the suspending one, it surfaces the
-   consult-first step: a binding federal requirement for boxing (15 U.S.C. 6306(b)), and for
-   MMA the same discipline applied where no federal rule exists.
+1. **Catches cross-jurisdiction suspensions** against 54 curated, source-cited commission
+   cases across 10 athletic commissions (every case adversarially verified against its
+   source).
+   When the booking commission differs from the suspending one, it surfaces the consult-first
+   step: binding federal law for boxing, the same discipline applied for MMA where no federal
+   rule exists.
 2. **Enforces return-to-competition windows** from Association of Ringside Physicians and ABC
-   guidance (30 days after a TKO, 60 after a KO, 90 after a KO with loss of consciousness),
-   with stricter state overlays, encoded as data-driven decision tables.
-3. **Surfaces injury signals from the team's own Slack** through the Real-Time Search API, with
-   permalink citations, so a "he got rocked in sparring Tuesday" message does not get lost.
-4. **Refuses to clear an ambiguous identity.** Two pro fighters share a name; CornerCheck shows
-   the candidates and asks a human to pick. A wrong "cleared" can be fatal. A wrong "refused"
-   costs a phone call.
+   guidance, encoded as data-driven decision tables.
+3. **Refuses to clear an ambiguous identity.** Two pro fighters named Bruno Silva is not an
+   edge case here; it is the point. The match threshold is conformally calibrated on 4,203
+   query variants built from the real fighter table: when two candidates are statistically
+   plausible, the math itself forces a human pick.
+4. **Corroborates against a live second source, one-way.** Boxing verdicts check the live
+   boxing-data.com record. A disagreement tightens the verdict; nothing the live source says
+   can ever loosen one. API down means annotated, never blocked, never loosened.
+5. **Watches the roster on its own.** A daily monitor re-checks every suspension window (the
+   Hague failure was a lapsed window nobody re-verified) and posts a deterministic digest to
+   an ops channel. No model decides or phrases an alert. Quiet days send nothing.
+6. **Surfaces injury signals from the team's own Slack** via Real-Time Search, with permalink
+   citations, so a "got rocked in sparring Tuesday" message does not get lost.
+7. **Proves itself in the product.** Every verdict card carries a "See the safety proof"
+   button that runs the actual Z3 equivalence proof live, plus a non-vacuity control that
+   must fail, showing the prover is no rubber stamp. The same proof runs on the public
+   dashboard for anyone, in milliseconds.
+8. **Exports the audit trail to a Canvas**, chain-verified at the moment of export, ready to
+   hand to a promoter or commission.
 
-Every answer is decision support. A human always makes the final call, and every decision
-lands in a tamper-evident, hash-chained audit ledger.
+Every answer is decision support. A human always makes the final call, and every decision,
+every alert, and every refusal lands in a tamper-evident, hash-chained audit ledger.
 
 ## How we built it
 
-CornerCheck uses all three Slack agent surfaces as load-bearing parts, not decoration. The
-**Assistant** pane and **Block Kit** (verdict cards, a disambiguation picker, a Data Table
-audit view) are the interface. A **Claude agent** orchestrates a single **Model Context
-Protocol** server that exposes the clearance tools. **Real-Time Search** grounds the agent in
-the workspace's own injury chatter. The cards are designed so the safest action is the easy
-one: a verdict reads at a glance from color and a single headline, and when identity is
-ambiguous the card stops you with a side-by-side picker (weight class, record) instead of a
-guess you would have to catch yourself.
+Slack platform surfaces are load-bearing, not decoration: the **Assistant** pane, **Block
+Kit** (verdict cards, the whole-card Data Table board, a disambiguation picker, the audit
+table, the live proof button), one **Model Context Protocol** server a **Claude agent**
+orchestrates, **Real-Time Search** for the injury signal, **Canvas** for the exportable audit
+trail, and **Incoming Webhooks** for the daily roster digest.
 
-The decision itself is deliberately not the language model's job. CornerCheck is a
-neurosymbolic system: the model perceives natural language and orchestrates tools, but a
-deterministic symbolic core decides clearance, a YAML decision-table rule engine and
-probabilistic entity resolution, and the language model is gated out of the verdict by a
-server-side hook. The safety property of that core is checked by Z3: a proof that the
-suspension-window logic is equivalent to an independent safety specification over every
-possible date and suspension interval, so if a suspension is active, the engine can never
-return CLEAR. The ledger is an HMAC-SHA256 hash chain, so a single edited past clearance breaks
-verification at the exact entry. The data is real: 4,107 fighters from a public dataset and 15
-suspension cases verified against their cited sources.
+The decision itself is deliberately not the language model's job. CornerCheck is
+neurosymbolic: the model perceives language and orchestrates tools; a deterministic symbolic
+core decides; a server-side hook gates the model out of the verdict. Both halves of the
+fail-closed claim carry formal backing:
+
+- **The rules half is proven.** Z3 checks the suspension-window logic for equivalence with an
+  independently written safety specification over all dates and intervals: an active
+  suspension can never produce CLEAR. The proof is non-vacuous (a deliberately broken variant
+  must yield a counterexample) and it earned its keep by catching a real fail-open bug, a
+  malformed date range that silently cleared a suspended fighter, before launch.
+- **The identity half is certified.** Split conformal prediction calibrates the match
+  threshold on 4,203 query variants built from the real fighter table (95% coverage,
+  holdout-checked). A confirmation requires a singleton prediction set; a statistically
+  plausible runner-up demotes to a human pick. The exact quantile is about fifty auditable
+  lines, no ML library required.
+
+The design follows one rule: the safest action is always the easy one. A whole fight card
+reads at a glance from three color bands; ambiguity is an interaction (a side-by-side picker
+with weight class and record), not an error message; the formal proof is a button on the
+card, not a paper; and when anything is unavailable, the surface says so plainly instead of
+pretending. The public dashboard applies the same honesty: every number on it comes from the
+production database at request time.
+
+The composition rule everywhere is tighten-only: live corroboration, the conformal gate, and
+the monitor can each block or annotate, and none of them can ever loosen a verdict. The
+ledger is an HMAC-SHA256 hash chain; editing one past entry breaks verification at that exact
+entry. The data is real: 4,100+ fighters from a public dataset and 54 suspension cases
+verified against their cited sources, with honesty stated in-product: a CLEAR means no
+recorded suspension matched, and commissions remain the source of truth.
 
 ## Challenges we ran into
 
-Real-Time Search is keyword-only, with no synonyms, so we built an explicit combat-sports
-injury lexicon and seeded the demo workspace with the language teams actually use. The
-fail-closed design forced one rule everywhere. Whether the failure is an ambiguous identity,
-an unreachable database, or a timed-out reasoning step, the system resolves toward "not
-cleared," never toward a silent clear. And the formal proof taught us a lesson: our first Z3 draft was a tautology that proved
-nothing. Rewriting it as an equivalence check against an independent specification not only
-made it real, it caught an actual fail-open bug, a malformed date range that would have
-silently cleared a suspended fighter.
+Real-Time Search is keyword-only, so we built a combat-sports injury lexicon. Fail-closed
+forced one rule everywhere: ambiguous identity, unreachable database, timed-out reasoning,
+all resolve toward "not cleared," never a silent clear. Our first Z3 draft was a tautology
+that proved nothing; rewriting it as an equivalence check against an independent spec made it
+real and caught an actual bug. And our own adversarial review process kept earning its keep:
+it found a retrieval gap that could certify a same-name impostor as unique, a markdown
+injection that could forge rows in the exported audit document, and a monitoring watermark
+with a permanent blind spot. Each one was demonstrated, fixed, and pinned with a regression
+test before it shipped.
 
-## Accomplishments that we are proud of
+## Accomplishments we are proud of
 
-A judge can use the deployed agent end to end, with no laptop of ours in the loop. A clearance
-core whose safety is machine-checked, not just tested. An adversarial review that found a real
-bug we then fixed. And a product that takes responsible AI seriously: it is decision support,
-it cites every source, and it shows its work in an audit trail that cannot be quietly altered.
+A judge can use everything live, with no laptop of ours in the loop: the Slack agent, the
+proof button, the Canvas export, the daily digest, and a public dashboard whose numbers come
+from the production database at request time. A clearance core whose safety is
+machine-checked and whose identity gate carries a statistical guarantee. 207 tests, an
+append-only audit ledger, and a review process that treats "plausible" as the enemy.
 
 ## What we learned
 
-That the hard part of a safety agent is not the happy path, it is every way the system can be
-wrong. Fail-closed has to be a property you can point at, in code and in a proof, not a
-sentence in a README.
+The hard part of a safety agent is not the happy path, it is every way the system can be
+wrong. Fail-closed has to be a property you can point at, in code, in a proof, and in a
+calibration artifact, not a sentence in a README.
 
 ## What is next for CornerCheck
 
-Wider commission coverage, calibrated abstention on the entity-resolution step, and a path for
-commissions to contribute records directly. The architecture already separates the proven
-decision core from the conversational surface, so each of these is additive.
+Wider commission coverage, a path for commissions to contribute records directly, and richer
+workflow automation inside Slack. The architecture already separates the proven decision core
+from the conversational surface, so each of these is additive.
 
 ## Built with
 
-Python, Slack Bolt (Assistant, Socket Mode), Block Kit, Real-Time Search, Claude Agent SDK,
-FastMCP (Model Context Protocol), Postgres (pg_trgm, jellyfish entity resolution), Z3,
-Hypothesis, HMAC-SHA256 hash-chain ledger, Render.
+Python, Slack Bolt (Assistant, Socket Mode), Block Kit, Real-Time Search, Canvas API,
+Incoming Webhooks, Claude Agent SDK, FastMCP (Model Context Protocol), Postgres (pg_trgm,
+jellyfish entity resolution), Z3 theorem prover, split conformal prediction, Hypothesis,
+HMAC-SHA256 hash-chain ledger, boxing-data.com API, Render.

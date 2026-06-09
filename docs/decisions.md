@@ -4,6 +4,27 @@ One entry per spike verdict, frozen contract, or platform fact. Newest first wit
 
 ## Galaxy tier 2
 
+### 2026-06-09 - WAVE B docs: demo script v2.1 + Devpost v2, judge-panel fact-checked
+
+- Both judge-facing docs rewritten around the full 9-feature reality, then run through an
+  adversarial judge-lens fact-check that verified EVERY number against the repo (207 tests,
+  54 cases, 4203/95% conformal, Z3 scope) and caught real issues, all fixed:
+  (1) BLOCKER: the script's beat math ended at exactly 3:00 against a strictly-under rule
+  with VO densities up to 256 wpm; retimed to 2:53 with ~145 wpm word budgets per beat.
+  (2) DATA BUG: "14 jurisdictions" was string-variant inflation (10 actual commissions);
+  fixed at the ROOT with migration 008 (normalizes existing rows, incl. prod at next boot)
+  + normalized JSON (top-up proven to add 0 after, no dupes) so the dashboard now says 10
+  honestly. (3) "4,203 real query/fighter pairs" overclaimed: they are query VARIANTS built
+  from the real fighter table; reworded to match what calibration.json itself says.
+  (4) Three pausable-frame contradictions in the script (cached-vs-live wording, "posted
+  days earlier" vs same-day seeding, the conformal footnote pointed at a human-pick card
+  that shows a different note). (5) The demo card paired a bantamweight with a heavyweight;
+  now division-plausible (dos Santos vs Blaydes, Silva vs Tavares) and still hits all three
+  bands. (6) Devpost gained an explicit Design paragraph (the under-represented criterion).
+- Judge canvas script (scripts/judge_canvas.py): creates + shares + posts the five-minute
+  tour Canvas in a #start-here channel (Stephen runs once; pin needs pins:write, batched
+  into the next manifest reinstall). 4th suggested prompt: the Jon Jones famous case.
+
 ### 2026-06-09 - The deployed URL becomes a live public dashboard
 
 - app/static/dashboard.html (committed, self-contained; Barlow Condensed + IBM Plex Mono,
