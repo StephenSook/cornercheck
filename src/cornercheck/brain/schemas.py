@@ -28,6 +28,19 @@ class ActiveSuspensionOut(BaseModel):
     source_url: str
 
 
+class CorroborationOut(BaseModel):
+    """A second-source check of identity and record (boxing-data.com). It annotates
+    always and TIGHTENS on disagreement; it can never loosen a verdict.
+    status: CONFIRMED | DISAGREED | UNMATCHED | UNAVAILABLE | NOT_APPLICABLE."""
+
+    source: str = "boxing-data.com"
+    status: str
+    note: str
+    live_record: str | None = None
+    checked_at: str | None = None
+    data_origin: str = "none"  # live | cache | demo-fixture | none
+
+
 class ClearanceVerdict(BaseModel):
     """The deterministic pipeline's answer. decision NEEDS_DISAMBIGUATION/NOT_FOUND are
     fail-closed identity outcomes; CLEAR/DO_NOT_CLEAR come only from the rule engine."""
@@ -43,6 +56,7 @@ class ClearanceVerdict(BaseModel):
     consultation_note: str | None = None
     identity_note: str = ""
     ledger_seq: int | None = None
+    corroboration: CorroborationOut | None = None
 
 
 def from_resolution(query: str, on_date: date, r: ResolutionResult) -> ClearanceVerdict:

@@ -11,6 +11,7 @@ from cornercheck.db.queries import evaluate_fighter_clearance, get_fighter
 from cornercheck.er.live_match import resolve
 from cornercheck.ledger.store import append_entry
 from cornercheck.session.state import SESSION_STORE
+from cornercheck.sources.corroborate import corroborate_fighter, tighten
 
 
 def start_clearance(
@@ -98,10 +99,17 @@ def _verdict_for(
     on_date: date,
     target_jurisdiction: str | None,
 ) -> ClearanceVerdict:
+    """Rule verdict, then second-source corroboration (boxing-data.com). Corroboration
+    can only TIGHTEN: a live record disagreement withholds a CLEAR; unavailable/unmatched
+    live data annotates and the verdict stands on the commission data on file. The ledger
+    records the FINAL decision plus the full corroboration evidence."""
     v = evaluate_fighter_clearance(fighter_id, on_date, target_jurisdiction)
-    SESSION_STORE.record_verdict(thread_key, v.decision)
     fighter = get_fighter(fighter_id)
     name = fighter.full_name if fighter else "unknown"
+    corr = corroborate_fighter(fighter) if fighter else None
+    decision, extra_rule = tighten(v.decision, corr) if corr else (v.decision, None)
+    applied = [*v.applied_rules, extra_rule] if extra_rule else v.applied_rules
+    SESSION_STORE.record_verdict(thread_key, decision)
     entry = append_entry(
         "cornercheck-pipeline",
         "clearance_decision",
@@ -109,11 +117,15 @@ def _verdict_for(
             "thread_key": thread_key,
             "fighter_id": fighter_id,
             "fighter_name": name,
-            "decision": v.decision,
+            "decision": decision,
             "on_date": on_date.isoformat(),
             "target_jurisdiction": target_jurisdiction,
-            "applied_rules": v.applied_rules,
+            "applied_rules": applied,
+            "corroboration": corr.model_dump() if corr else None,
         },
     )
     SESSION_STORE.record_written(thread_key, entry.seq)
-    return from_rule_verdict(query, fighter_id, name, v, entry.seq)
+    verdict = from_rule_verdict(query, fighter_id, name, v, entry.seq)
+    return verdict.model_copy(
+        update={"status": decision, "applied_rules": applied, "corroboration": corr}
+    )

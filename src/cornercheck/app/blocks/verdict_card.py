@@ -65,6 +65,29 @@ def build_verdict_card(
             }
         )
 
+    if v.corroboration and v.corroboration.status != "NOT_APPLICABLE":
+        c = v.corroboration
+        if c.status == "DISAGREED":
+            alarm = f":rotating_light: *Live record disagreement* ({c.source})\n{c.note}"
+            blocks.append(
+                {
+                    "type": "section",
+                    "text": {"type": "mrkdwn", "text": alarm[:3000]},
+                }
+            )
+        else:
+            blocks.append(
+                {
+                    "type": "context",
+                    "elements": [
+                        {
+                            "type": "mrkdwn",
+                            "text": f":satellite_antenna: Live check ({c.source}): {c.note}"[:3000],
+                        }
+                    ],
+                }
+            )
+
     if injury_hits:
         blocks.append({"type": "divider"})
         links = "\n".join(

@@ -25,9 +25,13 @@ def _name(v: ClearanceVerdict) -> str:
 
 
 def _detail(v: ClearanceVerdict) -> str:
-    if v.status == "DO_NOT_CLEAR" and v.active_suspensions:
-        s = v.active_suspensions[0]
-        return f"{s.suspension_type} hold, {s.jurisdiction}"
+    if v.status == "DO_NOT_CLEAR":
+        if v.active_suspensions:
+            s = v.active_suspensions[0]
+            return f"{s.suspension_type} hold, {s.jurisdiction}"
+        if v.corroboration and v.corroboration.status == "DISAGREED":
+            return "live record disagreement"
+        return "blocked, see notes"
     if v.status == "NEEDS_DISAMBIGUATION":
         return f"{len(v.candidates)} share this name, human pick required"
     if v.status == "NOT_FOUND":
@@ -90,30 +94,35 @@ def build_card_board(
     )
 
     # Cited blockers below the board, so the table stays scannable and the evidence is kept.
-    blockers = [v for v in verdicts if v.status == "DO_NOT_CLEAR" and v.active_suspensions]
+    blockers = [
+        v
+        for v in verdicts
+        if v.status == "DO_NOT_CLEAR"
+        and (v.active_suspensions or (v.corroboration and v.corroboration.status == "DISAGREED"))
+    ]
     if blockers:
         blocks.append({"type": "divider"})
         for v in blockers[:6]:
-            s = v.active_suspensions[0]
-            ends = (
-                "INDEFINITE (until cleared)"
-                if s.indefinite or not s.end_date
-                else s.end_date.isoformat()
-            )
-            src = f"<{s.source_url}|source>" if s.source_url else ""
             note = f"\n:scales: {v.consultation_note}" if v.consultation_note else ""
-            blocks.append(
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": (
-                            f"{_EMOJI['DO_NOT_CLEAR']} *{_name(v)}* - {s.suspension_type} "
-                            f"suspension, {s.jurisdiction}\nEnds: {ends}\n{s.reason} {src}{note}"
-                        )[:3000],
-                    },
-                }
-            )
+            if v.active_suspensions:
+                s = v.active_suspensions[0]
+                ends = (
+                    "INDEFINITE (until cleared)"
+                    if s.indefinite or not s.end_date
+                    else s.end_date.isoformat()
+                )
+                src = f"<{s.source_url}|source>" if s.source_url else ""
+                text = (
+                    f"{_EMOJI['DO_NOT_CLEAR']} *{_name(v)}* - {s.suspension_type} "
+                    f"suspension, {s.jurisdiction}\nEnds: {ends}\n{s.reason} {src}{note}"
+                )
+            else:  # corroboration-tightened: no suspension on file, the live source disagreed
+                c = v.corroboration
+                text = (
+                    f"{_EMOJI['DO_NOT_CLEAR']} *{_name(v)}* - live record disagreement "
+                    f"({c.source if c else 'live source'})\n{c.note if c else ''}{note}"
+                )
+            blocks.append({"type": "section", "text": {"type": "mrkdwn", "text": text[:3000]}})
 
     if n_pick:
         names = ", ".join(_name(v) for v in verdicts if v.status == "NEEDS_DISAMBIGUATION")
