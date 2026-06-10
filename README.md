@@ -4,7 +4,7 @@
 
 <p align="center">
   <a href="https://github.com/StephenSook/cornercheck/actions/workflows/ci.yml"><img src="https://github.com/StephenSook/cornercheck/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <img src="https://img.shields.io/badge/tests-251%20passing-3fb950.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/tests-252%20passing-3fb950.svg" alt="Tests">
   <img src="https://img.shields.io/badge/python-3.12-blue.svg" alt="Python 3.12">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue.svg" alt="License Apache-2.0"></a>
   <a href="https://cornercheck.onrender.com"><img src="https://img.shields.io/badge/agent-live-3fb950.svg" alt="Live"></a>
@@ -158,7 +158,7 @@ uv run python scripts/calibrate_er.py --check   # recomputes the calibration and
 uv sync                       # install (Python 3.12)
 docker compose up -d          # local Postgres
 uv run python seeds/seed_db.py --force   # 4,107 real fighters + 54 cited suspension cases
-uv run pytest                 # 251 tests
+uv run pytest                 # 252 tests
 uv run ruff check . && uv run ruff format --check . && uv run mypy src tests
 ```
 
