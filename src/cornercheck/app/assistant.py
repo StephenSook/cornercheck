@@ -15,7 +15,7 @@ from cornercheck.app.blocks.card_board import build_card_board
 from cornercheck.app.blocks.card_board import fallback_text as card_fallback
 from cornercheck.app.blocks.disambiguation_card import build_disambiguation_card
 from cornercheck.app.blocks.verdict_card import build_verdict_card, fallback_text
-from cornercheck.app.context import action_token
+from cornercheck.app.context import action_token, strip_mentions
 from cornercheck.app.parse import parse_card, parse_request
 from cornercheck.brain.agent import BrainEvent, BrainTimeoutError, get_brain
 from cornercheck.brain.pipeline import clear_card, start_clearance
@@ -123,7 +123,10 @@ def on_user_message(
     client: WebClient,
     context: BoltContext,
 ) -> None:
-    text = (payload.get("text") or "").strip()
+    # Mention tokens are stripped HERE too, not just in the channel handler: typing
+    # "@CornerCheck is X cleared?" inside the assistant pane otherwise pollutes the
+    # fighter query with the raw user-id token (caught live).
+    text = strip_mentions(payload.get("text") or "")
     thread_key = f"{payload.get('channel', '')}:{payload.get('thread_ts', payload.get('ts', ''))}"
     if _is_card_request(text):
         _handle_card(thread_key, text, say, set_status)

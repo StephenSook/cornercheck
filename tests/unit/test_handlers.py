@@ -242,3 +242,18 @@ def test_home_fallback_view_is_valid_and_honest() -> None:
     view = _fallback_view()
     _valid_blocks(view["blocks"])
     assert "NOT cleared" in str(view["blocks"])
+
+
+def test_assistant_pane_mention_is_stripped_before_parsing() -> None:
+    """Caught live: '@CornerCheck is Jon Jones cleared in California?' typed in the
+    assistant pane sent the raw user-id token into the fighter query (NO MATCH)."""
+    from cornercheck.app.assistant import _is_clearance_request
+    from cornercheck.app.context import strip_mentions
+    from cornercheck.app.parse import parse_request
+
+    raw = "<@U0B8F1V1KSB> is Jon Jones cleared in California?"
+    text = strip_mentions(raw)
+    assert _is_clearance_request(text)
+    parsed = parse_request(text)
+    assert parsed.fighter_query == "Jon Jones"
+    assert parsed.target_jurisdiction == "California"

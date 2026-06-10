@@ -1,5 +1,17 @@
 """Slack payload helpers shared across handler modules."""
 
+import re
+
+_MENTION_RE = re.compile(r"<[@!][^>]+>")
+
+
+def strip_mentions(text: str) -> str:
+    """Remove <@U...>, <@U...|name>, and <!here>-style tokens. Needed in the assistant
+    pane too: a user typing '@CornerCheck is Jon Jones cleared?' there otherwise sends
+    the raw user-id token into the fighter query ('U0B8F1V1KSB Jon Jones' -> NO MATCH,
+    caught live by Stephen)."""
+    return _MENTION_RE.sub(" ", text).strip()
+
 
 def action_token(body: dict) -> str | None:
     """The ephemeral Real-Time Search action token, wherever this payload shape

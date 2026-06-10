@@ -10,7 +10,6 @@ attempted here (expected, not a failure).
 
 import contextlib
 import logging
-import re
 
 from slack_bolt import App, Say
 
@@ -23,6 +22,7 @@ from cornercheck.app.blocks.card_board import build_card_board
 from cornercheck.app.blocks.card_board import fallback_text as card_fallback
 from cornercheck.app.blocks.disambiguation_card import build_disambiguation_card
 from cornercheck.app.blocks.verdict_card import build_verdict_card, fallback_text
+from cornercheck.app.context import strip_mentions
 from cornercheck.app.parse import parse_card, parse_request
 from cornercheck.brain.pipeline import clear_card, start_clearance
 
@@ -36,8 +36,7 @@ _POINTER = (
 
 
 def _strip_mentions(text: str) -> str:
-    # Covers <@U123>, the legacy pipe form <@U123|name>, and specials like <!here>.
-    return re.sub(r"<[@!][^>]+>", " ", text).strip()
+    return strip_mentions(text)
 
 
 def register_mentions(app: App) -> None:
