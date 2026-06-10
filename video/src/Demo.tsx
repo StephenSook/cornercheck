@@ -8,7 +8,7 @@ import {
   useCurrentFrame,
   useVideoConfig,
 } from "remotion";
-import { Video } from "@remotion/media";
+import { Audio, Video } from "@remotion/media";
 import { BEATS, FPS, type Beat } from "./beats";
 
 const BG = "#0b1220";
@@ -128,6 +128,7 @@ export const Demo: React.FC<{ showGuide: boolean }> = ({ showGuide }) => {
                   muted={beat.mode !== "camera"}
                   style={{ width: "100%", height: "100%", objectFit: "cover" }}
                 />
+                {beat.vo ? <Audio src={staticFile(`vo/${beat.vo}`)} /> : null}
                 {showGuide && beat.script ? <GuideCaption beat={beat} /> : null}
               </AbsoluteFill>
             ) : (
