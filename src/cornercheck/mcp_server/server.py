@@ -7,6 +7,7 @@ Infrastructure failures return a typed ERROR envelope that can never read as a c
 """
 
 import functools
+import logging
 import uuid as uuidlib
 from collections.abc import Callable
 from datetime import date
@@ -19,6 +20,9 @@ from cornercheck.er.live_match import resolve
 from cornercheck.ledger.store import append_entry
 from cornercheck.ledger.verify import verify_chain
 from cornercheck.rules.engine import Outcome, evaluate, load_rules, window_days
+from cornercheck.sources.corroborate import corroborate_fighter, tighten
+
+log = logging.getLogger("cornercheck.mcp")
 
 # NOTE: this server runs as its own stdio subprocess. It shares NO memory with the
 # brain's SessionStore; its fail-closed lock is the deterministic engine re-check below.
@@ -38,6 +42,9 @@ def _safe_tool(fn: Callable[..., dict[str, Any]]) -> Callable[..., dict[str, Any
         try:
             return fn(*args, **kwargs)
         except Exception as exc:
+            # The envelope serves the model; this log line serves the operator. Without
+            # it a persistent DB outage in this subprocess is invisible in server logs.
+            log.exception("tool %s failed", fn.__name__)
             return {
                 "status": "ERROR",
                 "error_kind": type(exc).__name__,
@@ -94,7 +101,12 @@ def er_resolve_fighter(query: str) -> dict[str, Any]:
 def er_fighter_details(fighter_id: str) -> dict[str, Any]:
     f = get_fighter(fighter_id)
     if f is None:
-        return {"error": f"no fighter with id {fighter_id}"}
+        return {
+            "status": "ERROR",
+            "error_kind": "UnknownFighter",
+            "message": f"no fighter with id {fighter_id}",
+            "is_clearance": False,
+        }
     return {
         "fighter": {
             "fighter_id": f.id,
@@ -120,8 +132,12 @@ def rules_evaluate_clearance(
 ) -> dict[str, Any]:
     d = date.fromisoformat(on_date) if on_date else date.today()
     fighter = get_fighter(fighter_id)
-    sport = fighter.sport if fighter else "mma"
-    v = evaluate(get_suspensions(fighter_id), d, target_jurisdiction, sport)
+    if fighter is None:
+        # An unknown id with zero suspension rows would otherwise evaluate to CLEAR:
+        # absence of a record is not absence of a suspension. Raise into the ERROR
+        # envelope (is_clearance: False), never a default verdict.
+        raise LookupError(f"no fighter with id {fighter_id!r}; refusing to evaluate clearance")
+    v = evaluate(get_suspensions(fighter_id), d, target_jurisdiction, fighter.sport)
     return {
         "decision": v.decision,
         "on_date": v.on_date.isoformat(),
@@ -189,33 +205,49 @@ def ledger_record_clearance(
             {"fighter_id": fighter_id, "attempted_decision": decision},
         )
 
-    engine_verdict = evaluate(get_suspensions(fighter_id), d, target_jurisdiction)
-
-    # LOCK 1 (in-tool): the written decision must equal the engine's decision.
-    if decision != engine_verdict.decision:
+    fighter = get_fighter(fighter_id)
+    if fighter is None:
+        # A ghost id has zero suspension rows and would re-check as CLEAR: "no record
+        # of this fighter" must never validate a clearance write.
         return refusal(
-            f"decision {decision!r} contradicts the rule engine"
-            f" ({engine_verdict.decision}); attempt ledgered",
+            f"no fighter with id {fighter_id!r}; refusing the write",
+            {"fighter_id": fighter_id, "attempted_decision": decision},
+        )
+
+    engine_verdict = evaluate(get_suspensions(fighter_id), d, target_jurisdiction, fighter.sport)
+    # LOCK 1 (in-tool): the written decision must equal the FINAL composed decision,
+    # the same tighten-only composition the pipeline applies. Comparing against the raw
+    # engine verdict deadlocked corroboration-tightened cases against lock 2 (the hook
+    # validates the tightened value): no decision could satisfy both locks.
+    corr = corroborate_fighter(fighter)
+    expected, _ = tighten(engine_verdict.decision, corr)
+    if decision != expected:
+        return refusal(
+            f"decision {decision!r} contradicts the composed verdict"
+            f" (engine {engine_verdict.decision}, after corroboration {expected});"
+            " attempt ledgered",
             {
                 "fighter_id": fighter_id,
                 "attempted_decision": decision,
                 "engine_decision": engine_verdict.decision,
+                "expected_decision": expected,
+                "corroboration_status": corr.status,
                 "on_date": d.isoformat(),
             },
         )
 
-    fighter = get_fighter(fighter_id)
     entry = append_entry(
         actor,
         "clearance_decision",
         {
             "thread_key": thread_key,
             "fighter_id": fighter_id,
-            "fighter_name": fighter.full_name if fighter else "unknown",
+            "fighter_name": fighter.full_name,
             "decision": decision,
             "on_date": d.isoformat(),
             "target_jurisdiction": target_jurisdiction,
             "applied_rules": engine_verdict.applied_rules,
+            "corroboration": corr.model_dump(),
         },
     )
     return {"recorded": True, "seq": entry.seq, "hash": entry.hash}
@@ -247,4 +279,7 @@ def ledger_verify_chain() -> dict[str, Any]:
 
 
 if __name__ == "__main__":
+    # The subprocess inherits no logging config from the Bolt process; without this,
+    # every failure in here is invisible to the operator (stderr reaches Render logs).
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
     mcp.run()
