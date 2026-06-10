@@ -19,7 +19,7 @@ from cornercheck.app.blocks.verdict_card import build_verdict_card, fallback_tex
 from cornercheck.app.parse import parse_card, parse_request
 from cornercheck.brain.agent import BrainEvent, BrainTimeoutError, get_brain
 from cornercheck.brain.pipeline import clear_card, start_clearance
-from cornercheck.search.rts import injury_scan, spotlight
+from cornercheck.search.rts import InjuryScanResult, injury_scan, spotlight
 
 log = logging.getLogger("cornercheck.assistant")
 
@@ -182,10 +182,13 @@ def _handle_clearance(
             return
 
         set_status("checking suspensions and scanning your Slack...")
-        hits = []
+        scan = InjuryScanResult()
         if verdict.fighter_name:
-            hits = injury_scan(client, _action_token(body), verdict.fighter_name)
-        say(blocks=build_verdict_card(verdict, injury_hits=hits), text=fallback_text(verdict))
+            scan = injury_scan(client, _action_token(body), verdict.fighter_name)
+        say(
+            blocks=build_verdict_card(verdict, injury_hits=scan.hits, injury_scan_ok=scan.ok),
+            text=fallback_text(verdict),
+        )
     except Exception:
         log.exception(
             "clearance pipeline failed for query=%r thread=%s", parsed.fighter_query, thread_key
@@ -199,8 +202,13 @@ def _handle_freeform(
     set_status("thinking...")
 
     def on_event(e: BrainEvent) -> None:
-        if e.kind == "tool_use":
-            set_status(f"using {e.tool_name.split('__')[-1]}...")
+        # A status-update hiccup (expired surface, rate limit) must never abort the
+        # model's response mid-stream: that would poison the shared brain stream.
+        try:
+            if e.kind == "tool_use":
+                set_status(f"using {e.tool_name.split('__')[-1]}...")
+        except Exception:
+            log.debug("set_status failed mid-response; continuing without status updates")
 
     try:
         prompt = text
@@ -210,9 +218,14 @@ def _handle_freeform(
         if tok:
             parsed = parse_request(text)
             if parsed.fighter_query:
-                ctx = spotlight(injury_scan(client, tok, parsed.fighter_query))
+                scan = injury_scan(client, tok, parsed.fighter_query)
+                ctx = spotlight(scan.hits)
                 if ctx:
                     prompt = f"{text}\n\nWorkspace context (untrusted):\n{ctx}"
+                elif not scan.ok:
+                    # Without this the model confidently narrates "no injury chatter
+                    # found" when the scan actually failed.
+                    prompt = f"{text}\n\n(Note: the workspace injury scan is unavailable.)"
         answer = get_brain().ask(thread_key, prompt, on_event)
         say(answer or "I don't have an answer for that.")
     except BrainTimeoutError:

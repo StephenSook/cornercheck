@@ -153,6 +153,27 @@ def build_card_board(
             ],
         }
     )
+    # The same one-click evidence the single verdict card offers (audit DISC-1: the
+    # board was the one verdict surface without them).
+    blocks.append(
+        {
+            "type": "actions",
+            "elements": [
+                {
+                    "type": "button",
+                    "text": {"type": "plain_text", "text": "View audit trail"},
+                    "action_id": "view_audit_trail",
+                    "value": "card_board",
+                },
+                {
+                    "type": "button",
+                    "text": {"type": "plain_text", "text": "See the safety proof"},
+                    "action_id": "view_safety_proof",
+                    "value": "card_board",
+                },
+            ],
+        }
+    )
     return blocks
 
 

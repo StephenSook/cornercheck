@@ -16,7 +16,7 @@ from cornercheck.app.canvas import export_audit_canvas
 from cornercheck.brain.pipeline import confirm_candidate
 from cornercheck.db.pool import get_pool
 from cornercheck.ledger.verify import verify_chain
-from cornercheck.search.rts import injury_scan
+from cornercheck.search.rts import InjuryScanResult, injury_scan
 from cornercheck.verification.z3_safety import (
     counterexample_when_start_boundary_loosened,
     prove_engine_equivalent_to_spec,
@@ -53,17 +53,17 @@ def register_actions(app: App) -> None:
                     "That selection didn't match a candidate I offered. Please re-run.",
                 )
                 return
-            hits = (
+            scan = (
                 injury_scan(client, _action_token(body), verdict.fighter_name or "")
                 if verdict.fighter_name
-                else []
+                else InjuryScanResult()
             )
             _reply(
                 client,
                 channel,
                 thread_ts,
                 verdict_fallback(verdict),
-                build_verdict_card(verdict, injury_hits=hits),
+                build_verdict_card(verdict, injury_hits=scan.hits, injury_scan_ok=scan.ok),
             )
         except Exception:
             log.exception("select_fighter failed: %s", body.get("actions"))

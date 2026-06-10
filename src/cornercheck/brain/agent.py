@@ -62,6 +62,7 @@ def build_options() -> ClaudeAgentOptions:
     }
     return ClaudeAgentOptions(
         model=settings.cornercheck_model,
+        fallback_model=settings.cornercheck_model_fallback or None,
         system_prompt=SYSTEM_PROMPT,
         mcp_servers={
             "cornercheck": {
@@ -125,31 +126,40 @@ class Brain:
         lock = await self._get_ask_lock()
         async with lock:  # one ask owns the shared stream at a time
             client = await self._ensure_client()
-            full_prompt = f"thread_key: {thread_key}\n\n{prompt}"
-            await client.query(full_prompt, session_id=thread_key)
-            final_text: list[str] = []
-            async for message in client.receive_response():
-                if isinstance(message, AssistantMessage):
-                    for block in message.content:
-                        if isinstance(block, TextBlock):
-                            final_text.append(block.text)
-                            on_event(BrainEvent(kind="text", text=block.text))
-                        elif isinstance(block, ToolUseBlock):
-                            on_event(
-                                BrainEvent(
-                                    kind="tool_use",
-                                    tool_name=block.name,
-                                    tool_input=dict(block.input or {}),
+            try:
+                full_prompt = f"thread_key: {thread_key}\n\n{prompt}"
+                await client.query(full_prompt, session_id=thread_key)
+                final_text: list[str] = []
+                async for message in client.receive_response():
+                    if isinstance(message, AssistantMessage):
+                        for block in message.content:
+                            if isinstance(block, TextBlock):
+                                final_text.append(block.text)
+                                on_event(BrainEvent(kind="text", text=block.text))
+                            elif isinstance(block, ToolUseBlock):
+                                on_event(
+                                    BrainEvent(
+                                        kind="tool_use",
+                                        tool_name=block.name,
+                                        tool_input=dict(block.input or {}),
+                                    )
                                 )
+                    elif isinstance(message, ResultMessage):
+                        on_event(
+                            BrainEvent(
+                                kind="result",
+                                cost_usd=getattr(message, "total_cost_usd", None),
                             )
-                elif isinstance(message, ResultMessage):
-                    on_event(
-                        BrainEvent(
-                            kind="result",
-                            cost_usd=getattr(message, "total_cost_usd", None),
                         )
-                    )
-            return "".join(final_text).strip()
+                return "".join(final_text).strip()
+            except BaseException:
+                # ANY abnormal exit mid-stream (a raising on_event callback, an SDK
+                # error, cancellation) abandons this response's tail on the shared
+                # stream; without poisoning, the NEXT ask reads that stale tail as its
+                # own answer (cross-thread leakage). Timeout was the only poisoned
+                # path before the audit; now every escape poisons.
+                self._poisoned = True
+                raise
 
     def ask(
         self, thread_key: str, prompt: str, on_event: EventCallback, timeout: float = 180.0

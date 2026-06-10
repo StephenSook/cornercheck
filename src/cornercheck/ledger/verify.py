@@ -6,7 +6,11 @@ from cornercheck.ledger.store import hmac_key
 
 
 def verify_chain() -> VerifyResult:
-    """Recompute every link in seq order; report the FIRST break point exactly."""
+    """Recompute every link in seq order; report the FIRST break point exactly.
+    Fetches actor/action/ts so _meta-stamped rows also catch column edits, including
+    a backdated or postdated ts."""
     with get_pool().connection() as conn:
-        cur = conn.execute("SELECT seq, payload, prev_hash, hash FROM ledger ORDER BY seq")
-        return verify_rows(hmac_key(), ((s, p, ph, h) for s, p, ph, h in cur))
+        cur = conn.execute(
+            "SELECT seq, payload, prev_hash, hash, actor, action, ts FROM ledger ORDER BY seq"
+        )
+        return verify_rows(hmac_key(), iter(cur))

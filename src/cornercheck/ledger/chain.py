@@ -10,6 +10,7 @@ import hmac
 import json
 from collections.abc import Iterable
 from dataclasses import dataclass
+from datetime import datetime
 
 GENESIS = "0" * 64
 
@@ -52,11 +53,23 @@ class VerifyResult:
     detail: str
 
 
-def verify_rows(key: bytes, rows: Iterable[tuple[int, dict, str, str]]) -> VerifyResult:
-    """Walk (seq, payload, prev_hash, hash) rows in seq order; report the FIRST break."""
+# App clock vs DB clock skew allowance for the ts cross-check. Same-host they differ
+# by milliseconds; a backdated/postdated column edit moves it by hours or days.
+_TS_TOLERANCE_S = 120.0
+
+
+def verify_rows(key: bytes, rows: Iterable[tuple]) -> VerifyResult:
+    """Walk (seq, payload, prev_hash, hash[, actor, action[, ts]]) rows in seq order;
+    report the FIRST break. When the extra columns are supplied AND the payload carries
+    the hash-covered _meta stamp, a column edit that diverges from the stamp (actor,
+    action, or a backdated/postdated ts) is itself a break. Rows older than the _meta
+    scheme skip the cross-checks; the detail string reports how many were meta-checked
+    so a caller passing too few columns cannot silently lose the coverage."""
     expected_prev = GENESIS
     checked = 0
-    for seq, payload, prev_hash, hash_ in rows:
+    meta_checked = 0
+    for row in rows:
+        seq, payload, prev_hash, hash_ = row[0], row[1], row[2], row[3]
         if prev_hash != expected_prev:
             return VerifyResult(False, checked, seq, f"prev_hash mismatch at seq {seq}")
         try:
@@ -65,6 +78,27 @@ def verify_rows(key: bytes, rows: Iterable[tuple[int, dict, str, str]]) -> Verif
             return VerifyResult(False, checked, seq, f"unverifiable payload at seq {seq}: {exc}")
         if recomputed != hash_:
             return VerifyResult(False, checked, seq, f"hash mismatch at seq {seq}")
+        if len(row) >= 6 and isinstance(payload, dict) and "_meta" in payload:
+            meta = payload["_meta"] if isinstance(payload["_meta"], dict) else {}
+            if meta.get("actor") != row[4] or meta.get("action") != row[5]:
+                return VerifyResult(
+                    False, checked, seq, f"actor/action column mismatch at seq {seq}"
+                )
+            if len(row) >= 7 and meta.get("at"):
+                try:
+                    stamped_at = datetime.fromisoformat(str(meta["at"]))
+                    drift = abs((row[6] - stamped_at).total_seconds())
+                except Exception:
+                    return VerifyResult(
+                        False, checked, seq, f"unparseable _meta timestamp at seq {seq}"
+                    )
+                if drift > _TS_TOLERANCE_S:
+                    return VerifyResult(
+                        False, checked, seq, f"ts column drift ({drift:.0f}s) at seq {seq}"
+                    )
+            meta_checked += 1
         expected_prev = hash_
         checked += 1
-    return VerifyResult(True, checked, None, f"chain intact ({checked} entries)")
+    detail = f"chain intact ({checked} entries"
+    detail += f", {meta_checked} meta-checked)" if meta_checked else ")"
+    return VerifyResult(True, checked, None, detail)

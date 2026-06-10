@@ -4,13 +4,32 @@ counterexample) proving the prover is not a rubber stamp. Rendered from ProofRes
 fields only, never from model prose. If either check misbehaves, the card says so in
 the loudest possible way: a safety proof that fails must never render as reassurance."""
 
+import logging
 from typing import Any
 
 from cornercheck.verification.z3_safety import ProofResult
 
+log = logging.getLogger("cornercheck.proof_card")
+
 
 def _cx(d: dict[str, Any]) -> str:
     return ", ".join(f"{k}={v}" for k, v in sorted(d.items()))[:200]
+
+
+def _coverage_phrase() -> str:
+    """The live calibrated level, never a stranded hardcode: a recalibration at a
+    different alpha must not leave this card claiming the old number."""
+    try:
+        from cornercheck.er.conformal import load_gate
+
+        gate = load_gate()
+        if gate:
+            return f"{gate.coverage_pct}% coverage"
+    except Exception as exc:
+        # The fallback phrase is an honest degrade, but a persistently broken gate
+        # load must not be invisible.
+        log.warning("conformal gate unavailable for the proof card: %s", exc)
+    return "calibrated coverage"
 
 
 def build_proof_card(positive: ProofResult, control: ProofResult) -> list[dict[str, Any]]:
@@ -83,7 +102,7 @@ def build_proof_card(positive: ProofResult, control: ProofResult) -> list[dict[s
                     "type": "mrkdwn",
                     "text": (
                         "Scope: the suspension-window decision logic. Identity matching is "
-                        "separately certified by conformal calibration (95% coverage). "
+                        f"separately certified by conformal calibration ({_coverage_phrase()}). "
                         "Decision support; a human makes the call."
                     ),
                 }

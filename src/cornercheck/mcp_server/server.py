@@ -271,7 +271,13 @@ def ledger_recent_entries(limit: int = 10) -> dict[str, Any]:
     }
 
 
-@mcp.tool(description="Verify the entire hash chain; reports the FIRST broken seq exactly.")
+@mcp.tool(
+    description="Verify the entire hash chain; reports the FIRST broken seq exactly."
+    " Scope, honestly: catches edited payloads, edited actor/action/ts columns on"
+    " stamped rows, and reordering. Tail TRUNCATION is outside this in-table check;"
+    " it is caught by the head anchor in the most recent POSTED ops digest (requires"
+    " the ops webhook to be configured; quiet stretches extend that window)."
+)
 @_safe_tool
 def ledger_verify_chain() -> dict[str, Any]:
     r = verify_chain()

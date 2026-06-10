@@ -152,6 +152,10 @@ def evaluate(
     if not active:
         return RuleVerdict("CLEAR", on_date, applied_rules=["no-active-suspension"])
     note = None
+    # Substring containment is deliberate: targets are canonical state names from the
+    # parser ("Texas"), jurisdictions are full commission strings ("Texas Department of
+    # Licensing and Regulation (TDLR)"). Note-only either way: the DECISION never
+    # depends on this comparison.
     if target_jurisdiction is not None and any(
         target_jurisdiction.lower() not in s.jurisdiction.lower() for s in active
     ):

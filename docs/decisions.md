@@ -4,6 +4,35 @@ One entry per spike verdict, frozen contract, or platform fact. Newest first wit
 
 ## Whole-repo audit (post-build hardening)
 
+### 2026-06-10 - Audit PR-B: every product surface hardened
+
+- Injury scan is now a TRI-STATE: an attempted-but-failed scan (API error or response
+  shape drift) returns ok=False and the verdict card says "Workspace injury scan
+  unavailable" instead of rendering identically to "no chatter found". No-token
+  surfaces are expected, not failures. The freeform brain prompt carries the same note
+  so the model never narrates "no injury chatter" over a dead scan.
+- Ledger tamper-evidence now covers METADATA: append_entry stamps _meta (actor, action,
+  app-time) INSIDE the hashed payload ("_meta" is reserved; producers using it are
+  refused loudly); verify cross-checks the columns against the stamp, including a
+  backdated/postdated ts (120s skew tolerance), and reports how many rows were
+  meta-checked. The daily ops digest carries the chain head (seq + hash) as an EXTERNAL
+  truncation anchor in Slack history; dedup compares anchorless text so the advancing
+  head cannot kill duplicate suppression (the suite caught exactly that regression).
+  Scope documented honestly in the verify tool description, including its conditions.
+- Brain client poisons on ANY abnormal mid-stream exit (BaseException), not just
+  timeout: an abandoned response tail can never serve as the next thread's answer. The
+  status callback swallows its own Slack errors. CORNERCHECK_MODEL_FALLBACK is now
+  actually wired (ClaudeAgentOptions.fallback_model).
+- @CornerCheck channel mentions get the deterministic pipeline (verdict card / board /
+  pointer, fail-closed), ending the mention-silence gap; the card board gained the same
+  audit/proof buttons as the verdict card; App Home renders denials as :no_entry:
+  DENIED (a refused CLEAR no longer wears green) and publishes an honest fallback view
+  when the ledger is unreachable; manifest suggested prompts now name real seeded
+  fighters (the fictional spike-era "Dragan Petrovic" is gone).
+- Smalls: pool self-heals severed connections; migrations name the failing file;
+  proof-card coverage phrase reads the live calibration artifact (logged fallback);
+  dashboard tryline/conformal copy fixed + inline favicon (console now clean).
+
 ### 2026-06-10 - Eight-brain repo audit: three safety BLOCKERs found and fixed
 
 - A seven-reviewer parallel audit (Gemini whole-repo, silent-failure hunter, mock/hardcode

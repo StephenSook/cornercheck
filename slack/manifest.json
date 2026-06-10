@@ -19,15 +19,19 @@
       "suggested_prompts": [
         {
           "title": "Check a fighter",
-          "message": "Is Dragan Petrovic cleared for Saturday's card in Texas?"
+          "message": "Is Junior dos Santos cleared in Texas?"
         },
         {
-          "title": "Why was someone refused?",
-          "message": "Show me the audit trail for the last clearance decision."
+          "title": "Check a whole card",
+          "message": "Check this card in Texas: Junior dos Santos vs Curtis Blaydes, Bruno Silva vs Brad Tavares"
         },
         {
-          "title": "Scan for injury chatter",
-          "message": "Any injury mentions about our roster this week?"
+          "title": "Ambiguous name",
+          "message": "Is Bruno Silva cleared to fight?"
+        },
+        {
+          "title": "Famous case",
+          "message": "Is Jon Jones cleared to fight in California?"
         }
       ]
     }

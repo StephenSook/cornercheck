@@ -24,7 +24,12 @@ def apply_migrations() -> list[str]:
         for path in sorted(MIGRATIONS_DIR.glob("*.sql")):
             if path.name in done:
                 continue
-            conn.execute(path.read_text())  # no params -> simple protocol, multi-statement OK
+            try:
+                conn.execute(path.read_text())  # no params -> simple protocol, multi-stmt OK
+            except Exception as exc:
+                # The whole batch rolls back atomically; name the file so the operator
+                # is not left diffing eight migrations against a bare SQL error.
+                raise RuntimeError(f"migration {path.name} failed") from exc
             conn.execute("INSERT INTO schema_migrations (filename) VALUES (%s)", (path.name,))
             applied.append(path.name)
     return applied

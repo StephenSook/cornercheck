@@ -9,6 +9,7 @@ from slack_bolt.adapter.socket_mode import SocketModeHandler
 from cornercheck.app.actions import register_actions
 from cornercheck.app.assistant import assistant
 from cornercheck.app.home import register_home
+from cornercheck.app.mentions import register_mentions
 from cornercheck.app.workflow_step import register_workflow_step
 from cornercheck.config import get_settings
 
@@ -21,6 +22,7 @@ def build_app() -> App:
     app.use(assistant)
     register_actions(app)
     register_home(app)
+    register_mentions(app)
     register_workflow_step(app)
 
     @app.error

@@ -20,6 +20,7 @@ def build_verdict_card(
     injury_hits: list[InjuryHit] | None = None,
     search_mode: str = "keyword",
     now: datetime | None = None,
+    injury_scan_ok: bool = True,
 ) -> list[dict[str, Any]]:
     emoji, label = _STATUS.get(v.status, (":grey_question:", v.status))
     title = v.fighter_name or v.query or "Clearance check"
@@ -105,6 +106,22 @@ def build_verdict_card(
                         :3000
                     ],
                 },
+            }
+        )
+
+    if not injury_scan_ok:
+        # A failed scan must never render identically to "no injury chatter found":
+        # the person making the safety call needs to know one of the three advertised
+        # signals silently degraded.
+        blocks.append(
+            {
+                "type": "context",
+                "elements": [
+                    {
+                        "type": "mrkdwn",
+                        "text": ":mag: Workspace injury scan unavailable for this check.",
+                    }
+                ],
             }
         )
 

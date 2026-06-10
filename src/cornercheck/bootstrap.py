@@ -22,6 +22,7 @@ def _load_seed_module() -> object | None:
         return None
     spec = importlib.util.spec_from_file_location("seed_db", _SEED_DB)
     if spec is None or spec.loader is None:
+        log.warning("seed_db.py at %s could not be loaded as a module; skipping seed", _SEED_DB)
         return None
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
