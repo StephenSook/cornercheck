@@ -63,10 +63,15 @@ def export_audit_canvas(
     entries: list[dict[str, Any]],
     chain_ok: bool,
     chain_detail: str,
+    user_id: str | None = None,
 ) -> tuple[str | None, str]:
-    """Create the canvas, grant the channel read access, return (permalink, note).
+    """Create the canvas, grant read access, return (permalink, note).
     permalink None means there is no link to hand out; the note says what actually
-    happened (not created / created but unshared / created+shared but unlinkable)."""
+    happened (not created / created but unshared / created+shared but unlinkable).
+
+    The assistant pane's conversation id is a DM ("D..."), which the canvas
+    channel-share API rejects, so there the canvas is shared to the requesting USER
+    first; each share path falls back to the other before admitting defeat."""
     md = build_audit_markdown(entries, chain_ok, chain_detail)
     try:
         created = client.canvases_create(
@@ -74,14 +79,27 @@ def export_audit_canvas(
             document_content={"type": "markdown", "markdown": md},
         )
         canvas_id = str(created["canvas_id"])
-        try:
-            client.canvases_access_set(
-                canvas_id=canvas_id, access_level="read", channel_ids=[channel]
-            )
-        except Exception as e:
+        by_user: dict[str, Any] = {"user_ids": [user_id]} if user_id else {}
+        by_channel: dict[str, Any] = {"channel_ids": [channel]}
+        attempts = [by_user, by_channel] if channel.startswith("D") else [by_channel, by_user]
+        shared = False
+        for grant in attempts:
+            if not grant:
+                continue
+            try:
+                client.canvases_access_set(canvas_id=canvas_id, access_level="read", **grant)
+                shared = True
+                break
+            except SlackApiError as e:
+                err = str(e.response.get("error") or "") if e.response is not None else ""
+                log.warning(
+                    "canvas share via %s failed (%s)", next(iter(grant)), err or "api error"
+                )
+            except Exception as e:
+                log.warning("canvas share via %s failed (%s)", next(iter(grant)), type(e).__name__)
+        if not shared:
             # The canvas EXISTS at this point; reporting a plain failure would be a lie
             # and would leave an orphaned document nobody was told about.
-            log.warning("canvas created but sharing failed (%s)", type(e).__name__)
             return None, (
                 "Canvas was created but could not be shared to this channel "
                 f"automatically; an admin can find it in the workspace. {_AUTHORITATIVE}."

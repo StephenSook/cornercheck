@@ -176,3 +176,39 @@ def test_created_but_unshared_is_reported_honestly() -> None:
     permalink, note = export_audit_canvas(_ShareFailClient(), "C1", ENTRIES, True, "ok")  # type: ignore[arg-type]
     assert permalink is None
     assert "created but could not be shared" in note
+
+
+# --- Assistant-pane (DM) sharing: live-recording catch 2026-06-10 ----------------------
+
+
+def test_dm_export_shares_to_the_requesting_user_first() -> None:
+    # The assistant pane's conversation id is a DM ("D..."); channel-share rejects it
+    # (live SlackApiError during demo recording). Share to the clicking user instead.
+    client = _HappyClient()
+    permalink, note = export_audit_canvas(client, "D0B9QR547T2", ENTRIES, True, "ok", user_id="U1")  # type: ignore[arg-type]
+    assert permalink == "https://x.slack.com/docs/T1/F0CANVAS"
+    assert note == "exported"
+    access_kw = next(kw for kind, kw in client.calls if kind == "access")
+    assert access_kw == {"canvas_id": "F0CANVAS", "access_level": "read", "user_ids": ["U1"]}
+
+
+class _ChannelShareRejectsClient(_HappyClient):
+    def canvases_access_set(self, **kw: Any) -> dict[str, Any]:
+        if "channel_ids" in kw:
+            raise SlackApiError("nope", {"error": "channel_not_found"})
+        return super().canvases_access_set(**kw)
+
+
+def test_channel_share_failure_falls_back_to_user_share() -> None:
+    client = _ChannelShareRejectsClient()
+    permalink, note = export_audit_canvas(client, "C123", ENTRIES, True, "ok", user_id="U1")  # type: ignore[arg-type]
+    assert permalink == "https://x.slack.com/docs/T1/F0CANVAS"
+    assert note == "exported"
+    user_grants = [kw for kind, kw in client.calls if kind == "access" and "user_ids" in kw]
+    assert user_grants == [{"canvas_id": "F0CANVAS", "access_level": "read", "user_ids": ["U1"]}]
+
+
+def test_dm_export_without_user_still_fails_soft() -> None:
+    permalink, note = export_audit_canvas(_ShareFailClient(), "D1", ENTRIES, True, "ok")  # type: ignore[arg-type]
+    assert permalink is None
+    assert "created but could not be shared" in note
