@@ -19,10 +19,13 @@ On camera, calm and direct. This is the human anchor; mean it. ~48 words.
 
 > "In 2017, fighter Tim Hague died after a knockout in a boxing match. His medical
 > suspension had lapsed days earlier, and he fought as a late replacement. Nobody
-> re-checked. Suspensions still do not reliably cross state lines. So I built the check,
-> inside Slack, where fight operations already work."
+> re-checked. The records existed. Nothing forced the check. So I built it, inside
+> Slack, where fight operations already work."
 
 Direction: hold eye contact on "died." One full beat of silence after "Nobody re-checked."
+The two short sentences after it land staccato; do not rush them. (Wording updated
+2026-06-10 to match the validator-confirmed framing: records exist, the booking-time
+check does not. 47 words, within budget.)
 
 ---
 
