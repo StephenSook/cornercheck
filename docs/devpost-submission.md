@@ -32,7 +32,7 @@ check belongs there too.
 CLEAR, DO NOT CLEAR, or NEEDS PICK, with the blocking record cited. Underneath that surface:
 
 1. **Catches cross-jurisdiction suspensions** against 54 curated, source-cited commission
-   cases across 10 athletic commissions (every case adversarially verified against its
+   cases across 10 jurisdictions (every case adversarially verified against its
    source).
    When the booking commission differs from the suspending one, it surfaces the consult-first
    step: binding federal law for boxing, the same discipline applied for MMA where no federal
@@ -137,3 +137,55 @@ Python, Slack Bolt (Assistant, Socket Mode), Block Kit, Real-Time Search, Canvas
 Incoming Webhooks, Claude Agent SDK, FastMCP (Model Context Protocol), Postgres (pg_trgm,
 jellyfish entity resolution), Z3 theorem prover, split conformal prediction, Hypothesis,
 HMAC-SHA256 hash-chain ledger, boxing-data.com API, Render.
+
+---
+
+## Devpost form fields (paste-ready, finalized 2026-06-10)
+
+Adversarially fact-checked against this repo (12/13 claims confirmed by independent
+review; the two precision notes are already applied below: "rule core" not "rules",
+"jurisdictions" not "athletic commissions").
+
+**Project name** (60 max): `CornerCheck`
+
+**Elevator pitch** (199/200 chars):
+
+> The agent that refuses to guess: fail-closed fighter-safety clearance inside Slack.
+> Mathematically proven rule core, statistically certified identity, and an audit trail
+> you can hand to a commission.
+
+**About the project**: paste this document from "Inspiration" through "What is next for
+CornerCheck" (Devpost renders the Markdown headings).
+
+**Built with** (tag field): python, slack-bolt, block-kit, real-time-search, canvas,
+incoming-webhooks, claude-agent-sdk, mcp, postgres, z3, conformal-prediction, hypothesis,
+hmac, render
+
+**Try it out links**: https://cornercheck.onrender.com and
+https://github.com/StephenSook/cornercheck
+
+**Track**: Slack Agent for Good. **Submitter type**: Individual. **Country**: United
+States of America. **Organization / Slack App ID / Orgs-track update fields**: blank
+(Organizations track not entered).
+
+**Slack Agents for Good Track, impact field**:
+
+> In 2017, fighter Tim Hague died after a bout fought just days after his medical
+> suspension lapsed, with nobody re-verifying it; the 2024 fatality inquiry called for a
+> fighter-safety registry that still does not exist. Medical suspensions do not reliably
+> travel between athletic commissions, and matchmakers book fighters across state lines
+> from Slack today. CornerCheck makes the unsafe booking the hard one: it checks single
+> fighters and whole fight cards against 54 source-verified suspension cases across 10
+> jurisdictions plus the live boxing record, and it refuses to clear an ambiguous
+> identity (conformally calibrated, 95% coverage). A daily monitor re-checks every
+> suspension window, so a lapsed window cannot be silently forgotten: the failure mode
+> in the Hague case. The impact is measurable in-product: every DO-NOT-CLEAR and every
+> refusal is written to a tamper-evident, hash-chained audit ledger, so prevented unsafe
+> bookings are countable, auditable events rather than anecdotes. Free and open source
+> for any gym, promotion, or commission.
+
+**Architecture diagram upload**: `docs/demo-assets/architecture.png` (1920x1080, current
+shipped system). **Thumbnail**: `docs/demo-assets/thumbnail.png` (1200x800, Devpost 3:2).
+**Gallery**: `docs/demo-assets/dashboard-1200x800.png` + verdict-card.png + Slack
+screenshots at recording time. **Video demo link**: pending the Jul 7-8 recording; that
+form page cannot be saved until a URL exists.
