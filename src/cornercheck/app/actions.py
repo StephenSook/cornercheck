@@ -124,10 +124,11 @@ def register_actions(app: App) -> None:
         never reads as a failed audit: the table stays authoritative."""
         ack()
         channel, thread_ts = _thread_coords(body)
+        user_id = str((body.get("user") or {}).get("id") or "") or None
         try:
             result = verify_chain()
             permalink, note = export_audit_canvas(
-                client, channel, _recent_entries(), result.ok, result.detail
+                client, channel, _recent_entries(), result.ok, result.detail, user_id=user_id
             )
             if permalink:
                 text = (
