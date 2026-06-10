@@ -20,7 +20,9 @@ def _rows_from_entries(entries: list[dict[str, Any]]) -> list[list[dict[str, Any
         when = (e.get("ts") or "")[:16].replace("T", " ")
         rows.append(
             [
-                {"type": "raw_number", "text": str(e.get("seq", ""))},
+                # raw_text, NOT raw_number: Slack's table-cell schema rejected
+                # raw_number with invalid_blocks in prod (platform drift, 2026-06-10).
+                {"type": "raw_text", "text": str(e.get("seq", ""))},
                 {"type": "raw_text", "text": when},
                 {"type": "raw_text", "text": e.get("action", "")},
                 {"type": "raw_text", "text": str(p.get("fighter_name", "-"))},

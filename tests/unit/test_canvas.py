@@ -124,6 +124,17 @@ def test_audit_table_carries_the_export_button() -> None:
     assert actions["elements"][0]["action_id"] == "export_audit_canvas"
 
 
+def test_audit_table_cells_are_all_raw_text() -> None:
+    # Slack rejected raw_number cells with invalid_blocks in production (2026-06-10
+    # platform drift, caught by Stephen's first live click): every cell stays raw_text.
+    from cornercheck.app.blocks.audit_table import build_audit_table
+
+    table = next(b for b in build_audit_table(ENTRIES, True, "ok") if b["type"] == "table")
+    for row in table["rows"]:
+        for cell in row:
+            assert cell["type"] == "raw_text"
+
+
 # --- Adversarial-review regressions ----------------------------------------------------
 
 
