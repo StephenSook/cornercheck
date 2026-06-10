@@ -68,7 +68,7 @@ def test_stats_endpoint_serves_live_numbers(base_url: str) -> None:
     assert s["fighters"] is not None and s["fighters"] >= 1
     assert s["cases"] is not None and s["cases"] >= 1
     assert s["jurisdictions"] is not None and s["jurisdictions"] >= 1
-    assert s["chain"]["ok"] in (True, False, None)
+    assert s["chain"]["ok"] is True  # ledger state is controlled by the fixture here
 
 
 def test_proof_endpoint_proves_over_http(base_url: str) -> None:

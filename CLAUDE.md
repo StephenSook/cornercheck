@@ -6,7 +6,7 @@ Python 3.12 + uv. Slack Bolt (Assistant middleware, Socket Mode) + Claude Agent 
 
 - Install: `uv sync`
 - Local DB: `docker compose up -d`
-- Tests: `uv run pytest` (live tests excluded by default; opt in with `-m live`)
+- Tests: `uv run pytest` (the full suite; no test currently carries the live marker)
 - Lint: `uv run ruff check .` and `uv run ruff format --check .`
 - Types: `uv run mypy src tests`
 - Run app: `uv run python -m cornercheck.app.main`

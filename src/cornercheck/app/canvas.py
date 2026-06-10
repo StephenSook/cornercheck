@@ -65,7 +65,8 @@ def export_audit_canvas(
     chain_detail: str,
 ) -> tuple[str | None, str]:
     """Create the canvas, grant the channel read access, return (permalink, note).
-    permalink None means the export did not complete; the note says why and what to do."""
+    permalink None means there is no link to hand out; the note says what actually
+    happened (not created / created but unshared / created+shared but unlinkable)."""
     md = build_audit_markdown(entries, chain_ok, chain_detail)
     try:
         created = client.canvases_create(

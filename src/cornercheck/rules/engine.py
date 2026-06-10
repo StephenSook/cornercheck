@@ -11,7 +11,7 @@ The LLM never decides clearance. This engine does, from data:
 """
 
 from dataclasses import dataclass, field
-from datetime import date, timedelta
+from datetime import date
 from pathlib import Path
 from typing import Any, Literal
 
@@ -191,15 +191,3 @@ def window_days(
             days = overlay_days
             applied.append(f"overlay:{name} ({overlay.get('source', 'unsourced')})")
     return days, applied
-
-
-def project_suspension(
-    rules: Rules,
-    outcome: Outcome,
-    bout_date: date,
-    cause: str | None = None,
-    sparring: bool = False,
-) -> tuple[date, date, list[str]]:
-    """Mandated window after a bout outcome: (start, end, applied rule ids)."""
-    days, applied = window_days(rules, outcome, cause=cause, sparring=sparring)
-    return bout_date, bout_date + timedelta(days=days), applied

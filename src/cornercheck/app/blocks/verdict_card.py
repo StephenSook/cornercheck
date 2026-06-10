@@ -2,7 +2,7 @@
 optional workspace injury signal + data-as-of/search-mode footer + audit-trail button.
 (Normal-message blocks only; NOT the Alert block, which renders only in modals - report 19.)"""
 
-from datetime import date, datetime
+from datetime import datetime
 from typing import Any
 
 from cornercheck.brain.schemas import ClearanceVerdict
@@ -168,7 +168,3 @@ def build_verdict_card(
 def fallback_text(v: ClearanceVerdict) -> str:
     _, label = _STATUS.get(v.status, ("", v.status))
     return f"CornerCheck: {v.fighter_name or v.query} - {label} (as of {v.on_date.isoformat()})"
-
-
-def today_iso() -> str:
-    return date.today().isoformat()

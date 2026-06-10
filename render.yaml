@@ -31,6 +31,6 @@ services:
 
 databases:
   - name: cornercheck-db
-    plan: basic_256mb # no expiry; the seed is small (~4k fighters + 15 cases)
+    plan: basic_256mb # no expiry; the seed is small (~4k fighters + 54 cases)
     region: oregon
     postgresMajorVersion: "16"

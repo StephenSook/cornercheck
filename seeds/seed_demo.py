@@ -31,7 +31,7 @@ def seed_demo(channel: str) -> None:
     for text in MESSAGES:
         resp = client.chat_postMessage(channel=ch, text=text)
         print(f"posted ts={resp['ts']}: {text[:60]}...")
-        time.sleep(0.3)  # stay under the chat.postMessage rate tier
+        time.sleep(1.1)  # chat.postMessage tier is ~1 msg/sec/channel; stay under it
     print("\nSeeded. RTS indexing lag is ~1-3 min; wait before running the injury-scan demo beat.")
 
 

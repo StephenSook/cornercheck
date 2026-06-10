@@ -4,6 +4,42 @@ One entry per spike verdict, frozen contract, or platform fact. Newest first wit
 
 ## Whole-repo audit (post-build hardening)
 
+### 2026-06-10 - Audit PR-C: docs and tests catch up to the code
+
+- HANDLER-LEVEL TESTS (the suite audit's top gap): the Slack glue layer (assistant
+  dispatch, all Block Kit action handlers, App Home views) was the only code a judge's
+  clicks execute that CI never executed; its blanket fail-closed excepts meant a
+  regression would first surface MID-DEMO. tests/unit/test_handlers.py now pins the
+  composition with recorders: verdict card on CLEAR, picker on ambiguity, board on a
+  card, fail-closed replies on crashes, thread-targeted action replies, valid home
+  blocks including the DENIED rendering, honest fallback view.
+- PROD GUARD on clean_ledger: the fixture TRUNCATEs whatever DATABASE_URL points at;
+  one local run against the Render DB would have destroyed the production audit ledger.
+  Non-local hosts now refuse unless CI or CORNERCHECK_ALLOW_TEST_TRUNCATE is set.
+- Weak assertions tightened: the CLEAR-card test passed even with the labels swapped
+  ("CLEAR" is a substring of "DO NOT CLEAR"); the identical-twins typo test accepted
+  the crowding bug it exists to catch; the dashboard chain assert admitted every value.
+- Comment truth pass (every item verified against code): the conformal docstrings
+  claimed inf-quantile = "certifies nothing" when an inf gate would certify EVERYTHING
+  (load_gate validation is the real guard; docstrings now say so); prove_identity_gate
+  relabeled as the contract AXIOM check it is (consistency, not code-derived proof),
+  in the demo script output too; canvas export, monitor cadence, schemas field name,
+  parse comments, audit_table date, seed_demo rate comment, judge-canvas wording.
+- Consolidation: er/names.py is the single name-normalization vocabulary (norm for
+  scoring, fold for seed keying, semantics unchanged and documented); app/context.py
+  unifies the two divergent action-token extractors; dead code removed
+  (project_suspension, today(), today_iso()).
+- Docs: architecture.md rewritten to the shipped system (corroboration node, conformal
+  gate, monitor, ledger _meta, live proof; it contradicted the README diagram);
+  README layout now lists all 11 packages and the documented triplet matches CI
+  exactly (ruff format --check included); counts true everywhere (251); the
+  "live-marked tests excluded" claim dropped (no test carries the marker); pyproject
+  gains urls/classifiers/authors.
+- DESIGN NOTE made explicit (wiring audit DISC-3): the freeform agent can never pass
+  the ledger gate because only the deterministic pipeline confirms fighters into the
+  session. Intentional: the agent reads everything, only the pipeline writes.
+
+
 ### 2026-06-10 - Audit PR-B: every product surface hardened
 
 - Injury scan is now a TRI-STATE: an attempted-but-failed scan (API error or response

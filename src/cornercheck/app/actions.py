@@ -1,4 +1,5 @@
-"""Block Kit interactivity: the disambiguation pick and the audit-trail button."""
+"""Block Kit interactivity: the disambiguation pick, the live safety-proof button,
+the audit-trail view, and the Canvas export."""
 
 import logging
 from datetime import date
@@ -13,6 +14,7 @@ from cornercheck.app.blocks.proof_card import fallback_text as proof_fallback
 from cornercheck.app.blocks.verdict_card import build_verdict_card
 from cornercheck.app.blocks.verdict_card import fallback_text as verdict_fallback
 from cornercheck.app.canvas import export_audit_canvas
+from cornercheck.app.context import action_token
 from cornercheck.brain.pipeline import confirm_candidate
 from cornercheck.db.pool import get_pool
 from cornercheck.ledger.verify import verify_chain
@@ -162,9 +164,7 @@ def _reply(
 
 
 def _action_token(body: dict) -> str | None:
-    return body.get("assistant", {}).get("thread", {}).get("action_token") or body.get(
-        "message", {}
-    ).get("metadata", {}).get("event_payload", {}).get("action_token")
+    return action_token(body)
 
 
 def _recent_entries() -> list[dict]:

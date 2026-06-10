@@ -62,7 +62,9 @@ def test_duplicate_real_names_disambiguate(er_fixture: dict[str, str]) -> None:
 
 def test_typo_retrieves_into_disambiguation_not_refusal(er_fixture: dict[str, str]) -> None:
     r = resolve(f"{PREFIX} Bruno Sylva")
-    assert r.status in ("AMBIGUOUS", "CONFIRMED")  # high recall: never lose the true match
+    # CONFIRMED here would mean one twin got dropped from retrieval, the exact crowding
+    # bug the suite exists to catch: identical-name twins must ALWAYS disambiguate.
+    assert r.status == "AMBIGUOUS"
     names = {c.full_name for c in r.candidates}
     assert any("Bruno Silva" in n for n in names)
 
