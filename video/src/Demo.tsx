@@ -122,7 +122,12 @@ export const Demo: React.FC<{ showGuide: boolean }> = ({ showGuide }) => {
               <TitleCard />
             ) : beat.footage ? (
               <AbsoluteFill>
-                <Video src={staticFile(`footage/${beat.footage}`)} />
+                {/* Screen clips carry stray mic audio; the camera bookends keep theirs. */}
+                <Video
+                  src={staticFile(`footage/${beat.footage}`)}
+                  muted={beat.mode !== "camera"}
+                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                />
                 {showGuide && beat.script ? <GuideCaption beat={beat} /> : null}
               </AbsoluteFill>
             ) : (
