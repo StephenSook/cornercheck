@@ -53,7 +53,8 @@ CLEAR, DO NOT CLEAR, or NEEDS PICK, with the blocking record cited. Underneath t
    Hague failure was a lapsed window nobody re-verified) and posts a deterministic digest to
    an ops channel. No model decides or phrases an alert. Quiet days send nothing.
 6. **Surfaces injury signals from the team's own Slack** via Real-Time Search, with permalink
-   citations, so a "got rocked in sparring Tuesday" message does not get lost.
+   citations, so a "got rocked in sparring Tuesday" message does not get lost. (In the judge
+   sandbox, that chatter is seeded demo data; it mirrors the real cases on file.)
 7. **Proves itself in the product.** Every verdict card carries a "See the safety proof"
    button that runs the actual Z3 equivalence proof live, plus a non-vacuity control that
    must fail, showing the prover is no rubber stamp. The same proof runs on the public
