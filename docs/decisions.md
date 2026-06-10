@@ -2,6 +2,35 @@
 
 One entry per spike verdict, frozen contract, or platform fact. Newest first within each stage.
 
+## Whole-repo audit (post-build hardening)
+
+### 2026-06-10 - Eight-brain repo audit: three safety BLOCKERs found and fixed
+
+- A seven-reviewer parallel audit (Gemini whole-repo, silent-failure hunter, mock/hardcode
+  hunter, wiring tracer, test-suite analyzer, comment auditor, organization reviewer; the
+  Codex eighth honestly reported unavailability) plus a Playwright browser pass over the
+  live dashboard. Three genuine safety BLOCKERs that 219 green tests never touched:
+  1. GHOST FIGHTER = CLEAR (live-reproduced): a valid-but-absent fighter id returned zero
+     suspensions and evaluated to CLEAR with "no-active-suspension". Fixed: every
+     evaluation/write path now refuses when the fighter row is absent (LookupError into
+     the fail-closed surface; the MCP write tool ledgers the refusal).
+  2. RULES YAML FAILED OPEN: a typo'd key in the sparring overlay silently became a 0-day
+     no-contact window after a KO, still printing a sourced-looking rule id. Fixed:
+     load_rules validates every Outcome has a positive int in every table (refuses to
+     LOAD), and the lookup is [outcome], never .get(outcome, 0).
+  3. LOCK 1 / LOCK 2 DEADLOCK: the in-tool re-check validated the RAW engine verdict
+     while the hook validated the corroboration-TIGHTENED one, so tightened cases had no
+     writable decision (failed closed, with spurious denials). Fixed: lock 1 now applies
+     the same tighten() composition and compares against the composed verdict; the write
+     payload carries the corroboration evidence like every pipeline write.
+- Also in this pass: the MCP subprocess gained logging (its failures were invisible to
+  operators), er_fighter_details aligned to the ERROR envelope shape, and a test
+  assertion that was missing "in md" (always-true) repaired.
+- Remaining audit fixes are staged as PR-B (product surface: manifest prompt placeholder
+  "Dragan Petrovic", app_mention handler, card-board buttons, dashboard copy + favicon,
+  brain poison asymmetry, injury-scan tri-state, ledger metadata coverage) and PR-C
+  (docs/test hygiene): full plan in project memory.
+
 ## Galaxy tier 2
 
 ### 2026-06-09 - Workflow Builder custom step: the verdict as a building block

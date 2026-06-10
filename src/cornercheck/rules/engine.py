@@ -13,7 +13,7 @@ The LLM never decides clearance. This engine does, from data:
 from dataclasses import dataclass, field
 from datetime import date, timedelta
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 import portion as P
 import yaml
@@ -50,16 +50,51 @@ class Rules:
     overlays: dict[str, dict]
 
 
+def _require_outcome_days(table: Any, label: str) -> dict[str, int]:
+    """Every Outcome must map to a positive int. A missing or typo'd key must refuse to
+    LOAD, never default to a 0-day window (adversarial review demonstrated a single
+    misspelled YAML key silently turning a 45-day no-contact hold into 'cleared to spar
+    now' while still printing a sourced-looking rule id)."""
+    if not isinstance(table, dict):
+        raise ValueError(f"rules table {label!r} missing or not a mapping; refusing to load")
+    for oc in ("TKO", "KO", "KO_LOC"):
+        v = table.get(oc)
+        if isinstance(v, bool) or not isinstance(v, int) or v <= 0:
+            raise ValueError(
+                f"rules table {label!r} has missing/invalid days for {oc!r}: {v!r}; "
+                "refusing to load (fail closed)"
+            )
+    return {str(k): int(v) for k, v in table.items()}
+
+
 def load_rules(base_path: Path | None = None, overlays_path: Path | None = None) -> Rules:
     base = yaml.safe_load((base_path or TABLES_DIR / "arp_base.yaml").read_text())
     over = yaml.safe_load((overlays_path or TABLES_DIR / "state_overlays.yaml").read_text())
-    sparring = base.get("sparring_overlay", {})
+    if "sparring_overlay" not in base:
+        raise ValueError("arp_base.yaml is missing 'sparring_overlay'; refusing to load")
+    sparring = base["sparring_overlay"]
+    if "overlays" not in over:
+        raise ValueError("state_overlays.yaml is missing 'overlays'; refusing to load")
+    overlays = dict(over["overlays"])
+    for name, overlay in overlays.items():
+        for tbl in ("competition_windows_days", "no_contact_days"):
+            if tbl in overlay:
+                for oc, v in overlay[tbl].items():
+                    if isinstance(v, bool) or not isinstance(v, int) or v <= 0:
+                        raise ValueError(
+                            f"overlay {name!r} table {tbl!r} has invalid days for "
+                            f"{oc!r}: {v!r}; refusing to load (fail closed)"
+                        )
     return Rules(
-        competition_windows_days=dict(base["competition_windows_days"]),
+        competition_windows_days=_require_outcome_days(
+            base.get("competition_windows_days"), "competition_windows_days"
+        ),
         rule_notes=dict(base.get("rule_notes", {})),
-        sparring_no_contact_days=dict(sparring.get("no_contact_days", {})),
+        sparring_no_contact_days=_require_outcome_days(
+            sparring.get("no_contact_days"), "sparring_overlay.no_contact_days"
+        ),
         sparring_attribution=str(sparring.get("attribution", "")),
-        overlays=dict(over.get("overlays", {})),
+        overlays=overlays,
     )
 
 
@@ -136,7 +171,9 @@ def window_days(
     """Longest-rule-wins window for a bout outcome; returns (days, applied rule ids)."""
     table = "no_contact_days" if sparring else "competition_windows_days"
     if sparring:
-        days = rules.sparring_no_contact_days.get(outcome, 0)
+        # [outcome], never .get(outcome, 0): a gap must raise into the fail-closed
+        # envelope, not clear a fighter to spar with a zero-day window.
+        days = rules.sparring_no_contact_days[outcome]
         applied = [f"sparring-overlay:{outcome} ({rules.sparring_attribution})"]
     else:
         days = rules.competition_windows_days[outcome]

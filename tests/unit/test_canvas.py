@@ -30,7 +30,7 @@ def test_markdown_renders_entries_and_integrity() -> None:
     md = build_audit_markdown(ENTRIES, True, "9 entries verified")
     assert "# CornerCheck audit trail" in md
     assert "intact (9 entries verified)" in md
-    assert "| 9 | 2026-06-09 20:45 | cornercheck-pipeline | clearance_decision "
+    assert "| 9 | 2026-06-09 20:45 | cornercheck-pipeline | clearance_decision " in md
     assert "Junior Dos Santos" in md and "DO_NOT_CLEAR" in md
     assert "human makes the call" in md
     assert "—" not in md  # no em-dashes in exported copy

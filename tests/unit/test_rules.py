@@ -151,3 +151,76 @@ def test_rules_are_data_yaml_override_changes_outcome(tmp_path: Path) -> None:
     custom_rules: Rules = load_rules(custom, overlays)
     assert window_days(custom_rules, "KO")[0] == 8
     assert window_days(custom_rules, "KO_LOC", sparring=True)[0] == 3
+
+
+# --- Whole-repo audit regressions: the rules tables must fail CLOSED at load -----------
+
+
+def _write_tables(tmp_path, base: str, overlays: str):  # type: ignore[no-untyped-def]
+    b = tmp_path / "base.yaml"
+    o = tmp_path / "overlays.yaml"
+    b.write_text(base)
+    o.write_text(overlays)
+    return b, o
+
+
+GOOD_BASE = """
+competition_windows_days: {TKO: 30, KO: 60, KO_LOC: 90}
+rule_notes: {TKO: x, KO: y, KO_LOC: z}
+sparring_overlay:
+  attribution: test
+  no_contact_days: {TKO: 30, KO: 45, KO_LOC: 60}
+"""
+GOOD_OVERLAYS = "overlays: {}\n"
+
+
+def test_missing_sparring_overlay_refuses_to_load(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    # Pre-fix, a missing/typo'd key silently became a 0-day no-contact window after a KO.
+    import pytest as _pytest
+
+    from cornercheck.rules.engine import load_rules
+
+    base = "competition_windows_days: {TKO: 30, KO: 60, KO_LOC: 90}\n"
+    b, o = _write_tables(tmp_path, base, GOOD_OVERLAYS)
+    with _pytest.raises(ValueError, match="sparring_overlay"):
+        load_rules(b, o)
+
+
+def test_missing_outcome_day_refuses_to_load(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    import pytest as _pytest
+
+    from cornercheck.rules.engine import load_rules
+
+    base = GOOD_BASE.replace("KO_LOC: 60}", "}").replace("{TKO: 30, KO: 45, }", "{TKO: 30, KO: 45}")
+    b, o = _write_tables(tmp_path, base, GOOD_OVERLAYS)
+    with _pytest.raises(ValueError, match="KO_LOC"):
+        load_rules(b, o)
+
+
+def test_quoted_string_days_refuse_to_load(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    import pytest as _pytest
+
+    from cornercheck.rules.engine import load_rules
+
+    b, o = _write_tables(tmp_path, GOOD_BASE.replace("KO: 45", 'KO: "45"'), GOOD_OVERLAYS)
+    with _pytest.raises(ValueError, match="KO"):
+        load_rules(b, o)
+
+
+def test_misspelled_overlays_key_refuses_to_load(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    import pytest as _pytest
+
+    from cornercheck.rules.engine import load_rules
+
+    b, o = _write_tables(tmp_path, GOOD_BASE, "overlay: {}\n")
+    with _pytest.raises(ValueError, match="overlays"):
+        load_rules(b, o)
+
+
+def test_committed_tables_still_load_and_validate() -> None:
+    from cornercheck.rules.engine import load_rules
+
+    rules = load_rules()
+    for oc in ("TKO", "KO", "KO_LOC"):
+        assert rules.competition_windows_days[oc] > 0
+        assert rules.sparring_no_contact_days[oc] > 0
