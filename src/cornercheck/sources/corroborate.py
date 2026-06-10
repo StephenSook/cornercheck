@@ -42,8 +42,12 @@ def corroborate_fighter(fighter: FighterRow) -> CorroborationOut:
             note="live record check failed; verdict rests on commission data on file",
         )
     note = out.note
-    if origin != "live" and fetched_at:
+    # Provenance must be exact on the card: a Postgres-cached LIVE response may say
+    # "cached live data"; a recorded demo fixture may not call itself live at all.
+    if origin == "cache" and fetched_at:
         note = f"{note} (cached live data from {fetched_at[:10]})"
+    elif origin == "demo-fixture" and fetched_at:
+        note = f"{note} (recorded real response from {fetched_at[:10]}; live check unavailable)"
     return out.model_copy(update={"data_origin": origin, "checked_at": fetched_at, "note": note})
 
 

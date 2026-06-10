@@ -115,11 +115,28 @@ def test_cached_origin_is_labeled_in_the_note(monkeypatch: pytest.MonkeyPatch) -
     monkeypatch.setattr(
         corroborate,
         "cached_search",
+        lambda name: (_hits("ryan_garcia"), "cache", "2026-06-09T18:54:31+00:00"),
+    )
+    out = corroborate_fighter(_row("Ryan Garcia"))
+    assert out.data_origin == "cache"
+    assert "cached live data from 2026-06-09" in out.note
+
+
+def test_demo_fixture_origin_never_claims_to_be_live(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Demo Evidence Rule (2026-06-10): a recorded fixture must say so on the card.
+
+    Regression pin: this path used to render '(cached live data from ...)' for
+    origin=demo-fixture, presenting a recorded response as live-derived."""
+    monkeypatch.setattr(
+        corroborate,
+        "cached_search",
         lambda name: (_hits("ryan_garcia"), "demo-fixture", "2026-06-09T18:54:31+00:00"),
     )
     out = corroborate_fighter(_row("Ryan Garcia"))
     assert out.data_origin == "demo-fixture"
-    assert "cached live data from 2026-06-09" in out.note
+    assert "recorded real response from 2026-06-09" in out.note
+    assert "live check unavailable" in out.note
+    assert "cached live data" not in out.note
 
 
 def test_chavez_fixture_record_fill() -> None:
