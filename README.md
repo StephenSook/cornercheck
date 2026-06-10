@@ -25,8 +25,9 @@ and the Z3 safety proof you can run yourself, right there, in milliseconds.
 
 ## The problem
 
-Medical suspensions in boxing and MMA do not reliably cross jurisdictions. A fighter knocked out
-under one commission can be booked under another before the mandatory medical hold expires. For
+Suspension records in boxing and MMA live in official databases, but nothing checks them
+automatically when a bout is booked. A fighter knocked out under one commission can still be
+booked under another before the mandatory medical hold expires. For
 professional boxing, federal law (15 U.S.C. §6306(b)) requires the licensing commission to
 consult the suspending one first; in practice that step is often skipped, and MMA has no federal
 equivalent at all. In 2017, boxer Tim Hague died after a knockout in Edmonton; his prior medical

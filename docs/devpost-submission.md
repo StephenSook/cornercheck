@@ -20,8 +20,11 @@ to a commission.
 In 2017, fighter Tim Hague died after a knockout in a boxing match in Edmonton. His medical
 suspension had lapsed only days earlier, and he fought as a late replacement. The 2024
 fatality inquiry called for a single registry of fighters' medical and bout histories, which
-still does not exist. The problem is worse across US state lines, where medical suspensions
-do not reliably travel between commissions. For professional boxing, federal law
+still does not exist. Across US state lines the records themselves exist: commissions
+document suspensions in official record-keeping databases and can view other states'
+entries (a state commission office confirmed this to us directly). What is missing is the
+check at booking time: nothing runs the lookup automatically when a matchmaker slots a
+fighter. For professional boxing, federal law
 (15 U.S.C. 6306(b)) requires the licensing commission to consult the suspending one first;
 for MMA there is no federal rule at all. Fight operations already coordinate in Slack. So the
 check belongs there too.
@@ -172,9 +175,10 @@ States of America. **Organization / Slack App ID / Orgs-track update fields**: b
 
 > In 2017, fighter Tim Hague died after a bout fought just days after his medical
 > suspension lapsed, with nobody re-verifying it; the 2024 fatality inquiry called for a
-> fighter-safety registry that still does not exist. Medical suspensions do not reliably
-> travel between athletic commissions, and matchmakers book fighters across state lines
-> from Slack today. CornerCheck makes the unsafe booking the hard one: it checks single
+> comprehensive medical registry that still does not exist. Suspension records live in
+> official databases, and commissions can view other states' entries (a state commission
+> office confirmed this to us directly); yet nothing checks them automatically when a
+> bout is booked, and matchmakers book fighters across state lines from Slack today. CornerCheck makes the unsafe booking the hard one: it checks single
 > fighters and whole fight cards against 54 source-verified suspension cases across 10
 > jurisdictions plus the live boxing record, and it refuses to clear an ambiguous
 > identity (conformally calibrated, 95% coverage). A daily monitor re-checks every
