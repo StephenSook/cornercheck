@@ -11,13 +11,13 @@ Run: uv run python seeds/seed_db.py [--force]
 import csv
 import json
 import sys
-import unicodedata
 import urllib.request
 from pathlib import Path
 from typing import Any
 
 from cornercheck.db.migrate import apply_migrations
 from cornercheck.db.pool import get_pool
+from cornercheck.er.names import fold
 from cornercheck.ledger.store import append_entry
 
 DATA_DIR = Path(__file__).parent / "data"
@@ -115,12 +115,8 @@ def seed(force: bool) -> None:
 
 
 def _fold(name: str) -> str:
-    """Punctuation- and diacritic-insensitive name key: 'T.J. Dillashaw' == 'TJ Dillashaw',
-    'Julianna Peña' == 'Julianna Pena'. Deliberately NOT fuzzy: 'Ryan Garcia' and
-    'Ryan Gracie' are different people and must stay distinct."""
-    s = unicodedata.normalize("NFKD", name)
-    s = "".join(ch for ch in s if not unicodedata.combining(ch))
-    return "".join(ch for ch in s.casefold() if ch.isalnum())
+    """The shared punctuation/diacritic-insensitive key; semantics live in er/names.py."""
+    return fold(name)
 
 
 def _case_fighter_id(conn: Any, c: dict) -> str:

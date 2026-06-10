@@ -14,6 +14,7 @@ from dataclasses import dataclass, field
 from typing import Literal
 
 from cornercheck.er.conformal import ConformalGate, load_gate
+from cornercheck.er.names import norm as _norm
 
 T_HIGH = 0.95
 T_LOW = 0.82
@@ -37,10 +38,6 @@ class ResolutionResult:
     status: Literal["CONFIRMED", "AMBIGUOUS", "NOT_FOUND"]
     candidates: list[Candidate] = field(default_factory=list)
     note: str = ""
-
-
-def _norm(name: str) -> str:
-    return " ".join(name.lower().split())
 
 
 def band(candidates: list[Candidate], gate: ConformalGate | None = None) -> ResolutionResult:

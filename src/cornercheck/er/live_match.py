@@ -7,6 +7,7 @@ thresholds.py decides confirm/disambiguate/refuse.
 import jellyfish
 
 from cornercheck.db.pool import get_pool
+from cornercheck.er.names import norm
 from cornercheck.er.thresholds import Candidate, ResolutionResult, band
 
 _RETRIEVE_SQL = """
@@ -29,7 +30,7 @@ def score_names(query: str, name: str) -> float:
     """The one name-similarity function: used live for banding and offline by
     scripts/calibrate_er.py, so the conformal guarantee calibrates the exact score
     it gates."""
-    q, n = " ".join(query.lower().split()), " ".join(name.lower().split())
+    q, n = norm(query), norm(name)
     if q == n:
         return 1.0
     return float(jellyfish.jaro_winkler_similarity(q, n))

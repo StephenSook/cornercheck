@@ -31,7 +31,7 @@ injury warning surfaced from this workspace's own messages.
 ## 3. Watch it refuse to guess
 `Is Bruno Silva cleared to fight?`
 Two real professional fighters share that name. The identity threshold is conformally
-calibrated (95% coverage over 4,203 real query pairs); when two candidates are plausible,
+calibrated (95% coverage over 4,203 query variants from the real roster); when two are plausible,
 the math forces a human pick.
 
 ## 4. Click the proof

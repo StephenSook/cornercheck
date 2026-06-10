@@ -153,7 +153,10 @@ def counterexample_when_start_boundary_loosened() -> ProofResult:
 
 
 def prove_identity_gate() -> ProofResult:
-    """Identity fail-closed: a clearance is emitted only for a confirmed fighter."""
+    """Sanity-check of the identity gate's intended CONTRACT (clearance implies a
+    confirmed identity), encoded as an AXIOM and shown consistent: unlike the interval
+    proofs above, this does not derive the property from engine code. The actual
+    enforcement is the SessionStore + PreToolUse hook, which is tested, not proven."""
     s = z3.Solver()
     confirmed = z3.Bool("identity_confirmed")
     engine_clear = z3.Bool("engine_clear")

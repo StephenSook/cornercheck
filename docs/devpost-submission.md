@@ -116,7 +116,7 @@ test before it shipped.
 A judge can use everything live, with no laptop of ours in the loop: the Slack agent, the
 proof button, the Canvas export, the daily digest, and a public dashboard whose numbers come
 from the production database at request time. A clearance core whose safety is
-machine-checked and whose identity gate carries a statistical guarantee. 207 tests, an
+machine-checked and whose identity gate carries a statistical guarantee. 251 tests, an
 append-only audit ledger, and a review process that treats "plausible" as the enemy.
 
 ## What we learned

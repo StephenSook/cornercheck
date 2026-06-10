@@ -7,7 +7,6 @@ Streamed thinking steps show the Retrieve -> Disambiguate -> Clear pipeline live
 
 import logging
 import re
-from datetime import date
 
 from slack_bolt import Assistant, BoltContext, Say, SetStatus, SetSuggestedPrompts
 from slack_sdk import WebClient
@@ -16,6 +15,7 @@ from cornercheck.app.blocks.card_board import build_card_board
 from cornercheck.app.blocks.card_board import fallback_text as card_fallback
 from cornercheck.app.blocks.disambiguation_card import build_disambiguation_card
 from cornercheck.app.blocks.verdict_card import build_verdict_card, fallback_text
+from cornercheck.app.context import action_token
 from cornercheck.app.parse import parse_card, parse_request
 from cornercheck.brain.agent import BrainEvent, BrainTimeoutError, get_brain
 from cornercheck.brain.pipeline import clear_card, start_clearance
@@ -88,7 +88,7 @@ def _is_card_request(text: str) -> bool:
 
 
 def _action_token(body: dict) -> str | None:
-    return body.get("event", {}).get("assistant_thread", {}).get("action_token")
+    return action_token(body)
 
 
 @assistant.thread_started
@@ -239,7 +239,3 @@ def _handle_freeform(
             "Something went wrong reasoning through that. The clearance check still works: "
             "ask _Is <fighter> cleared in <state>?_"
         )
-
-
-def today() -> date:
-    return date.today()

@@ -37,7 +37,10 @@ def test_clear_card() -> None:
     )
     blocks = build_verdict_card(v)
     _valid_blocks(blocks)
-    assert any("CLEAR" in str(b) for b in blocks)
+    # Exact pair, not a substring: "CLEAR" is inside "DO NOT CLEAR", so the old
+    # substring check passed even with the labels swapped (the worst rendering bug).
+    assert any(":large_green_circle:" in str(b) for b in blocks)
+    assert not any("DO NOT" in str(b) for b in blocks)
     assert any(b.get("type") == "actions" for b in blocks)
 
 

@@ -100,7 +100,7 @@ def parse_request(text: str, today: date | None = None) -> ParsedRequest:
     on_date = _find_date(raw)
 
     cleaned = raw.lower()
-    # strip an "in/for <jurisdiction>" trailing phrase
+    # strip an "in/for/at <jurisdiction>" phrase wherever it appears (not anchored)
     for kw in _JURISDICTIONS:
         cleaned = re.sub(rf"\b(in|for|at)\s+{re.escape(kw)}\b", " ", cleaned)
         cleaned = cleaned.replace(kw, " ")
@@ -173,7 +173,7 @@ def parse_card(text: str) -> ParsedCard:
 
 
 def _clean_card_side(side: str) -> str:
-    """Clean a single bout side to a fighter name WITHOUT touching the name's interior:
+    """Clean a single bout side to a fighter name, never keyword-stripping mid-name:
     strip surrounding punctuation and a run of leading framing words only."""
     s = side.strip().strip("\"'()[]").strip()
     s = _LEADING_FRAMING.sub("", s)

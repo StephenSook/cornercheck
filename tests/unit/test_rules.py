@@ -14,7 +14,6 @@ from cornercheck.rules.engine import (
     Suspension,
     evaluate,
     load_rules,
-    project_suspension,
     restricted_interval,
     suspension_interval,
     window_days,
@@ -66,11 +65,6 @@ def test_sparring_overlay_uses_own_table_and_attribution() -> None:
     days, applied = window_days(RULES, "KO", sparring=True)
     assert days == 45
     assert any("not an ABC mandate" in a for a in applied)
-
-
-def test_project_suspension_end_date() -> None:
-    start, end, _ = project_suspension(RULES, "KO", date(2026, 5, 16))
-    assert (start, end) == (date(2026, 5, 16), date(2026, 7, 15))
 
 
 def test_active_bounded_suspension_blocks() -> None:

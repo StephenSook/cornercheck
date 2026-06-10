@@ -42,7 +42,7 @@ class CorroborationOut(BaseModel):
 
 
 class ClearanceVerdict(BaseModel):
-    """The deterministic pipeline's answer. decision NEEDS_DISAMBIGUATION/NOT_FOUND are
+    """The deterministic pipeline's answer. status NEEDS_DISAMBIGUATION/NOT_FOUND are
     fail-closed identity outcomes; CLEAR/DO_NOT_CLEAR come only from the rule engine."""
 
     status: str  # CLEAR | DO_NOT_CLEAR | NEEDS_DISAMBIGUATION | NOT_FOUND

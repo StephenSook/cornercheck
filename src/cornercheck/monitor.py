@@ -1,8 +1,8 @@
 """Proactive roster monitoring: the Tim Hague failure mode, watched daily.
 
 A lapsed suspension window plus a late replacement and nobody re-checking is the
-canonical way this sport kills people. This monitor re-checks the roster on a daily
-tick and pushes an ops digest when, and only when, there is something to say.
+canonical way this sport kills people. This monitor ticks hourly, gated to roughly
+one run per day, and pushes an ops digest when, and only when, there is something to say.
 
 Every trigger is DETERMINISTIC (window arithmetic and ledger diffs); no LLM decides,
 phrases, or filters an alert. Quiet days stay quiet. Every run is itself written to

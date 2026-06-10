@@ -30,7 +30,7 @@ def main() -> None:
     r = prove_engine_equivalent_to_spec()
     print(f"    {r.status}: {r.detail}")
 
-    print("\n[3] Identity safety:")
+    print("\n[3] Identity contract (axiom consistency check, not a code-derived proof):")
     r = prove_identity_gate()
     print(f"    {r.status}: {r.detail}")
 

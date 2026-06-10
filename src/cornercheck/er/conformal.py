@@ -22,10 +22,11 @@ high-recall). The calibration artifact is committed and regenerated deterministi
 by scripts/calibrate_er.py against the real database.
 
 Fail-closed composition: this gate can only DEMOTE a legacy CONFIRMED (set not a
-singleton), never promote. Too little calibration data yields q_hat = infinity, a
-floor of -infinity, sets that are never singletons, and therefore NO certifications.
-A missing/corrupt artifact disables the gate with an annotation (the legacy bands,
-which this layer only ever tightens, remain in force).
+singleton), never promote. Too little calibration data yields q_hat = infinity, and
+load_gate refuses any artifact with q_hat outside [0, 1), disabling the gate entirely
+(legacy bands only, annotated): an unusable quantile would otherwise put EVERY
+candidate in the prediction set and mint meaningless singleton certifications.
+A missing/corrupt artifact disables the gate the same way.
 """
 
 import json
@@ -43,8 +44,10 @@ _ARTIFACT = Path(__file__).parent / "calibration.json"
 
 def conformal_quantile(scores: list[float], alpha: float) -> float:
     """The finite-sample split-conformal quantile: the ceil((n+1)(1-alpha))-th smallest
-    nonconformity score. Returns inf when n is too small for the level (which makes the
-    downstream gate certify nothing: the fail-closed direction)."""
+    nonconformity score. Returns inf when n is too small for the level; load_gate
+    rejects such an artifact and disables the gate (constructing a ConformalGate with
+    an infinite q_hat directly would certify every single-candidate retrieval, the
+    OPPOSITE of fail-closed, which is why validation lives at load time)."""
     if not 0.0 < alpha < 1.0:
         raise ValueError(f"alpha must be in (0, 1), got {alpha}")
     n = len(scores)

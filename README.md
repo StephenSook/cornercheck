@@ -4,7 +4,7 @@
 
 <p align="center">
   <a href="https://github.com/StephenSook/cornercheck/actions/workflows/ci.yml"><img src="https://github.com/StephenSook/cornercheck/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <img src="https://img.shields.io/badge/tests-218%20passing-3fb950.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/tests-251%20passing-3fb950.svg" alt="Tests">
   <img src="https://img.shields.io/badge/python-3.12-blue.svg" alt="Python 3.12">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue.svg" alt="License Apache-2.0"></a>
   <a href="https://cornercheck.onrender.com"><img src="https://img.shields.io/badge/agent-live-3fb950.svg" alt="Live"></a>
@@ -158,8 +158,8 @@ uv run python scripts/calibrate_er.py --check   # recomputes the calibration and
 uv sync                       # install (Python 3.12)
 docker compose up -d          # local Postgres
 uv run python seeds/seed_db.py --force   # 4,107 real fighters + 54 cited suspension cases
-uv run pytest                 # 218 tests (live-marked tests excluded by default)
-uv run ruff check . && uv run mypy src tests
+uv run pytest                 # 251 tests
+uv run ruff check . && uv run ruff format --check . && uv run mypy src tests
 ```
 
 To run the agent you need a Slack app (Socket Mode) and an Anthropic API key; copy `.env.example`
@@ -172,13 +172,17 @@ suite against a real Postgres service, a build, and a full-history secret scan.
 
 ```
 src/cornercheck/
-  app/          Slack surface: Assistant handlers, Block Kit cards, actions, App Home
+  app/          Slack surface: Assistant handlers, Block Kit cards, actions, mentions,
+                Workflow Builder step, App Home, the public dashboard HTTP server
   brain/        Claude Agent SDK session, PreToolUse fail-closed hook, deterministic pipeline
   mcp_server/   one FastMCP server, the agent's tool surface
   rules/        YAML decision-table rule engine (clearance rules are data, not code)
-  er/           entity resolution (pg_trgm + jellyfish, threshold-banded, fail-closed)
+  er/           entity resolution (pg_trgm + jellyfish, banded + conformal identity gate)
   sources/      live corroborating sources: boxing-data.com client, cache, recorded fixtures
-  ledger/       HMAC-SHA256 hash-chained audit ledger + verifier
+  search/       Real-Time Search injury scan (workspace chatter, spotlighted as untrusted)
+  session/      per-thread confirmation state behind the ledger gate
+  db/           Postgres pool, typed queries, ordered SQL migrations
+  ledger/       HMAC-SHA256 hash-chained audit ledger + verifier (metadata-stamped)
   verification/ Z3 safety proof
 tests/          unit, property (Hypothesis), integration, formal (Z3)
 docs/           architecture, decisions log, demo script, submission writeup
