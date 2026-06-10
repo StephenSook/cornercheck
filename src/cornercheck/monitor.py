@@ -52,6 +52,10 @@ class Watermark:
 
     seq: int
     ts: datetime  # DB clock at gather time, used only for suspensions.created_at
+    # Chain head hash at gather time. Riding in the ops digest, it becomes an EXTERNAL
+    # anchor (Slack message history) against tail truncation, which in-table
+    # verification alone cannot catch.
+    head_hash: str = ""
 
 
 @dataclass(frozen=True)
@@ -112,7 +116,10 @@ def gather_findings(today: date, since: Watermark) -> tuple[Findings, Watermark]
     with get_pool().connection() as conn:
         wm_row = conn.execute("SELECT coalesce(max(seq), 0), now() FROM ledger").fetchone()
         assert wm_row is not None  # aggregate always returns one row
-        watermark = Watermark(seq=int(wm_row[0]), ts=wm_row[1])
+        head = conn.execute("SELECT hash FROM ledger ORDER BY seq DESC LIMIT 1").fetchone()
+        watermark = Watermark(
+            seq=int(wm_row[0]), ts=wm_row[1], head_hash=str(head[0]) if head else ""
+        )
         lapsing_rows = conn.execute(
             _WINDOW_SQL, (today, today + timedelta(days=LAPSING_DAYS))
         ).fetchall()
@@ -167,9 +174,10 @@ def gather_findings(today: date, since: Watermark) -> tuple[Findings, Watermark]
     return findings, watermark
 
 
-def format_alert(f: Findings, today: date) -> str | None:
+def format_alert(f: Findings, today: date, anchor: str = "") -> str | None:
     """Deterministic digest text. None when there is nothing to report: quiet days
-    stay quiet, no synthetic cheer."""
+    stay quiet, no synthetic cheer. anchor (the chain head at gather time) makes every
+    posted digest an external tamper anchor in Slack message history."""
     if f.empty():
         return None
     lines = [f":rotating_light: *CornerCheck roster monitor* ({today.isoformat()})"]
@@ -202,6 +210,8 @@ def format_alert(f: Findings, today: date) -> str | None:
             f"- {f.indefinite_on_file} indefinite (until cleared) suspension(s) on file; "
             "no window to lapse, the engine blocks these at decision time."
         )
+    if anchor:
+        lines.append(f"_Ledger anchor: {anchor}_")
     lines.append("_Deterministic triggers. Decision support; a human makes the call._")
     text = "\n".join(lines)
     if len(text) > 39000:  # Slack text limit, defensive
@@ -296,22 +306,31 @@ def run_monitor_once(now: datetime | None = None) -> dict[str, Any]:
         return {"skipped": "ledger-unavailable"}
     since = _prior_watermark() or _first_run_watermark()
     f, watermark = gather_findings(at.date(), since)
-    text = format_alert(f, at.date())
+    anchor = f"seq {watermark.seq}, head {watermark.head_hash[:16]}" if watermark.head_hash else ""
+    # Dedup compares the ANCHORLESS text: the head hash advances with every ledgered
+    # run, so comparing anchored digests would never match and the duplicate
+    # suppression would silently die (caught by the suite when the anchor landed).
+    core = format_alert(f, at.date())
+    text = format_alert(f, at.date(), anchor=anchor)
     posted = False
     if text is not None:
-        if text == _last_digest:
+        if core == _last_digest:
             log.info("digest identical to the last posted one; duplicate push suppressed")
         else:
             posted = post_ops_alert(text)
             if posted:
-                _last_digest = text
+                _last_digest = core
     entry = append_entry(
         "cornercheck-monitor",
         "monitor_run",
         {
             "at": at.isoformat(),
             "since": {"seq": since.seq, "ts": since.ts.isoformat()},
-            "watermark": {"seq": watermark.seq, "ts": watermark.ts.isoformat()},
+            "watermark": {
+                "seq": watermark.seq,
+                "ts": watermark.ts.isoformat(),
+                "head_hash": watermark.head_hash,
+            },
             "findings": f.as_payload(),
             "alerted": text is not None,
             "posted": posted,

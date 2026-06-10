@@ -54,3 +54,64 @@ def test_least_privilege_roles_exist(db: str) -> None:
             " WHERE rolname IN ('cornercheck_app', 'cornercheck_reader')"
         ).fetchall()
     assert {r[0] for r in rows} == {"cornercheck_app", "cornercheck_reader"}
+
+
+def test_meta_stamp_catches_a_flipped_action_column(db: str, clean_ledger: None) -> None:
+    """Pre-audit, the hash covered only prev_hash+payload: a privileged edit flipping a
+    denial's action column to clearance_decision verified as intact."""
+    from cornercheck.db.pool import get_pool
+    from cornercheck.ledger.store import append_entry
+    from cornercheck.ledger.verify import verify_chain
+
+    e = append_entry("t", "clearance_write_denied", {"x": 1})
+    assert e.payload["_meta"]["action"] == "clearance_write_denied"
+    assert verify_chain().ok is True
+    try:
+        with get_pool().connection() as conn:
+            conn.execute("ALTER TABLE ledger DISABLE TRIGGER USER")
+            conn.execute("UPDATE ledger SET action = 'clearance_decision' WHERE seq = %s", (e.seq,))
+            conn.execute("ALTER TABLE ledger ENABLE TRIGGER USER")
+        r = verify_chain()
+        assert r.ok is False and r.first_bad_seq == e.seq
+        assert "actor/action column mismatch" in r.detail
+    finally:
+        # Restore even on assertion failure: a tamper test must not leave the shared
+        # ledger broken for whichever test runs next (suite-audit order-dependence).
+        with get_pool().connection() as conn:
+            conn.execute("ALTER TABLE ledger DISABLE TRIGGER USER")
+            conn.execute(
+                "UPDATE ledger SET action = 'clearance_write_denied' WHERE seq = %s", (e.seq,)
+            )
+            conn.execute("ALTER TABLE ledger ENABLE TRIGGER USER")
+    assert verify_chain().ok is True
+
+
+def test_meta_stamp_catches_a_backdated_ts(db: str, clean_ledger: None) -> None:
+    from cornercheck.db.pool import get_pool
+    from cornercheck.ledger.store import append_entry
+    from cornercheck.ledger.verify import verify_chain
+
+    e = append_entry("t", "clearance_decision", {"x": 1})
+    try:
+        with get_pool().connection() as conn:
+            conn.execute("ALTER TABLE ledger DISABLE TRIGGER USER")
+            conn.execute("UPDATE ledger SET ts = ts - interval '30 days' WHERE seq = %s", (e.seq,))
+            conn.execute("ALTER TABLE ledger ENABLE TRIGGER USER")
+        r = verify_chain()
+        assert r.ok is False and "ts column drift" in r.detail
+    finally:
+        with get_pool().connection() as conn:
+            conn.execute("ALTER TABLE ledger DISABLE TRIGGER USER")
+            conn.execute("UPDATE ledger SET ts = ts + interval '30 days' WHERE seq = %s", (e.seq,))
+            conn.execute("ALTER TABLE ledger ENABLE TRIGGER USER")
+    assert verify_chain().ok is True
+
+
+def test_meta_key_is_reserved(db: str, clean_ledger: None) -> None:
+    import pytest as _pytest
+
+    from cornercheck.ledger.chain import UnsafePayloadError
+    from cornercheck.ledger.store import append_entry
+
+    with _pytest.raises(UnsafePayloadError, match="reserved"):
+        append_entry("t", "x", {"_meta": {"actor": "spoof"}})
