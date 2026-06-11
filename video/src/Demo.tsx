@@ -47,6 +47,18 @@ const EndCard: React.FC = () => {
   );
 };
 
+// Dip-to-dark beat transitions: each beat fades in from the background color.
+const FadeIn: React.FC<{ frames: number; children: React.ReactNode }> = ({
+  frames,
+  children,
+}) => {
+  const frame = useCurrentFrame();
+  const opacity = interpolate(frame, [0, frames], [0, 1], {
+    extrapolateRight: "clamp",
+  });
+  return <AbsoluteFill style={{ backgroundColor: BG, opacity }}>{children}</AbsoluteFill>;
+};
+
 // Placeholder shown until real footage lands in public/footage/.
 const Placeholder: React.FC<{ beat: Beat }> = ({ beat }) => (
   <AbsoluteFill
@@ -129,10 +141,39 @@ const Captions: React.FC<{ beat: Beat; startSec: number; durationSec: number }> 
   );
 };
 
+// Music ducking: quiet under speech, opens up in the no-speech gaps (title card,
+// beat boundaries, end card). The bed itself also swells at these moments; the two
+// together read as the score "breathing" between lines.
+const MUSIC_LO = 0.07;
+const MUSIC_HI = 0.16;
+const OPEN_WINDOWS: Array<[number, number]> = [
+  [21.8, 25.2], // title card
+  ...[48, 72, 90, 107, 125, 140, 153, 163].map(
+    (b): [number, number] => [b - 0.5, b + 0.7],
+  ),
+  [171.5, 175], // end card
+];
+
+const musicVolumeAt = (s: number): number => {
+  let v = MUSIC_LO;
+  for (const [a, b] of OPEN_WINDOWS) {
+    const ramp = Math.max(
+      0,
+      Math.min(1, (s - a) / 0.4, (b - s) / 0.4),
+    );
+    v = Math.max(v, MUSIC_LO + (MUSIC_HI - MUSIC_LO) * ramp);
+  }
+  return v;
+};
+
 export const Demo: React.FC<{ showCaptions: boolean }> = ({ showCaptions }) => {
   const { fps } = useVideoConfig();
   return (
     <AbsoluteFill style={{ backgroundColor: BG }}>
+      <Audio
+        src={staticFile("vo/music-bed.wav")}
+        volume={(f) => musicVolumeAt(f / fps)}
+      />
       {BEATS.map((beat) => {
         const from = Math.round(beat.from * fps);
         const duration = Math.round((beat.to - beat.from) * fps);
@@ -146,7 +187,7 @@ export const Demo: React.FC<{ showCaptions: boolean }> = ({ showCaptions }) => {
             {beat.id === "beat1" ? (
               <TitleCard />
             ) : beat.footage ? (
-              <AbsoluteFill>
+              <FadeIn frames={beat.from === 0 ? 12 : 6}>
                 {/* Screen clips carry stray mic audio; the camera bookends keep theirs. */}
                 <Video
                   src={staticFile(`footage/${beat.footage}`)}
@@ -162,7 +203,7 @@ export const Demo: React.FC<{ showCaptions: boolean }> = ({ showCaptions }) => {
                 {showCaptions && beat.script ? (
                   <Captions beat={beat} startSec={speechStart} durationSec={speechDuration} />
                 ) : null}
-              </AbsoluteFill>
+              </FadeIn>
             ) : (
               <Placeholder beat={beat} />
             )}
