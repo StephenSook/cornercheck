@@ -9,7 +9,7 @@ import {
   useVideoConfig,
 } from "remotion";
 import { Audio, Video } from "@remotion/media";
-import { BEATS, FPS, type Beat } from "./beats";
+import { BEATS, END_CARD_AT, FPS, type Beat } from "./beats";
 
 const BG = "#0b1220";
 const TEXT = "#e6edf3";
@@ -34,10 +34,10 @@ const TitleCard: React.FC = () => {
   );
 };
 
-// Beat 10 second half: end card with a gentle fade-in.
+// Beat 10 tail: end card fades in once the close line has landed.
 const EndCard: React.FC = () => {
   const frame = useCurrentFrame();
-  const opacity = interpolate(frame, [0, 15], [0, 1], {
+  const opacity = interpolate(frame, [0, 20], [0, 1], {
     extrapolateRight: "clamp",
   });
   return (
@@ -48,74 +48,99 @@ const EndCard: React.FC = () => {
 };
 
 // Placeholder shown until real footage lands in public/footage/.
-const Placeholder: React.FC<{ beat: Beat }> = ({ beat }) => {
-  const mm = Math.floor(beat.from / 60);
-  const ss = String(Math.floor(beat.from % 60)).padStart(2, "0");
+const Placeholder: React.FC<{ beat: Beat }> = ({ beat }) => (
+  <AbsoluteFill
+    style={{
+      backgroundColor: BG,
+      justifyContent: "center",
+      alignItems: "center",
+      fontFamily:
+        '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      color: TEXT,
+      padding: 120,
+    }}
+  >
+    <div style={{ color: GREEN, fontSize: 34, letterSpacing: "0.18em", fontWeight: 700 }}>
+      {beat.mode.toUpperCase()}
+    </div>
+    <div style={{ fontSize: 64, fontWeight: 800, margin: "18px 0 30px" }}>{beat.title}</div>
+    <div style={{ fontSize: 30, color: SUB, maxWidth: 1400, lineHeight: 1.5, textAlign: "center" }}>
+      drop footage at public/footage/{beat.id}.mp4 and set `footage` in beats.ts
+    </div>
+  </AbsoluteFill>
+);
+
+// Burned-in captions: the beat's script split into sentences, each shown for a
+// share of the speech window proportional to its word count. Judges often watch
+// muted; the captions carry the argument without sound.
+const Captions: React.FC<{ beat: Beat; startSec: number; durationSec: number }> = ({
+  beat,
+  startSec,
+  durationSec,
+}) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const sentences = beat.script
+    .split(/(?<=[.!?])\s+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const totalWords = sentences.reduce((n, s) => n + s.split(/\s+/).length, 0);
+  if (totalWords === 0) return null;
+  let cursor = startSec;
+  const spans = sentences.map((s) => {
+    const share = (s.split(/\s+/).length / totalWords) * durationSec;
+    const span = { text: s, from: cursor, to: cursor + share };
+    cursor += share;
+    return span;
+  });
+  const t = frame / fps;
+  const active = spans.find((s) => t >= s.from && t < s.to);
+  if (!active) return null;
   return (
-    <AbsoluteFill
+    <div
       style={{
-        backgroundColor: BG,
+        position: "absolute",
+        bottom: 64,
+        left: 0,
+        right: 0,
+        display: "flex",
         justifyContent: "center",
-        alignItems: "center",
-        fontFamily:
-          '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-        color: TEXT,
-        padding: 120,
+        pointerEvents: "none",
       }}
     >
-      <div style={{ color: GREEN, fontSize: 34, letterSpacing: "0.18em", fontWeight: 700 }}>
-        {beat.mode.toUpperCase()} · {mm}:{ss}
+      <div
+        style={{
+          background: "rgba(7, 12, 22, 0.86)",
+          color: TEXT,
+          borderRadius: 14,
+          padding: "16px 30px",
+          fontSize: 34,
+          lineHeight: 1.35,
+          maxWidth: 1320,
+          textAlign: "center",
+          fontFamily:
+            '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+          textShadow: "0 1px 2px rgba(0,0,0,0.8)",
+        }}
+      >
+        {active.text}
       </div>
-      <div style={{ fontSize: 64, fontWeight: 800, margin: "18px 0 30px" }}>
-        {beat.title}
-      </div>
-      <div style={{ fontSize: 30, color: SUB, maxWidth: 1400, lineHeight: 1.5, textAlign: "center" }}>
-        {beat.script || "(no voiceover on this beat)"}
-      </div>
-      <div style={{ marginTop: 40, fontSize: 26, color: SUB }}>
-        drop footage at public/footage/{beat.id}.mp4 and set `footage` in beats.ts
-      </div>
-    </AbsoluteFill>
+    </div>
   );
 };
 
-// Assembly-reference caption (toggle off for the final render; final captions
-// come from the VO transcription pass).
-const GuideCaption: React.FC<{ beat: Beat }> = ({ beat }) => (
-  <div
-    style={{
-      position: "absolute",
-      bottom: 48,
-      left: 0,
-      right: 0,
-      display: "flex",
-      justifyContent: "center",
-    }}
-  >
-    <div
-      style={{
-        background: "rgba(11,18,32,0.82)",
-        color: TEXT,
-        borderRadius: 14,
-        padding: "14px 26px",
-        fontSize: 26,
-        maxWidth: 1500,
-        fontFamily:
-          '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      }}
-    >
-      {beat.script}
-    </div>
-  </div>
-);
-
-export const Demo: React.FC<{ showGuide: boolean }> = ({ showGuide }) => {
+export const Demo: React.FC<{ showCaptions: boolean }> = ({ showCaptions }) => {
   const { fps } = useVideoConfig();
   return (
     <AbsoluteFill style={{ backgroundColor: BG }}>
       {BEATS.map((beat) => {
         const from = Math.round(beat.from * fps);
         const duration = Math.round((beat.to - beat.from) * fps);
+        const voDelay = beat.voDelay ?? 0.6;
+        // Speech window for caption pacing: camera beats speak from ~1s in;
+        // voiceover beats follow the VO start and its trimmed length (~slot).
+        const speechStart = beat.mode === "camera" ? 1.0 : voDelay;
+        const speechDuration = Math.max(2, beat.to - beat.from - speechStart - 1.2);
         return (
           <Sequence key={beat.id} from={from} durationInFrames={duration} premountFor={fps}>
             {beat.id === "beat1" ? (
@@ -126,16 +151,23 @@ export const Demo: React.FC<{ showGuide: boolean }> = ({ showGuide }) => {
                 <Video
                   src={staticFile(`footage/${beat.footage}`)}
                   muted={beat.mode !== "camera"}
+                  trimBefore={Math.round((beat.clipStart ?? 0) * fps)}
                   style={{ width: "100%", height: "100%", objectFit: "cover" }}
                 />
-                {beat.vo ? <Audio src={staticFile(`vo/${beat.vo}`)} /> : null}
-                {showGuide && beat.script ? <GuideCaption beat={beat} /> : null}
+                {beat.vo ? (
+                  <Sequence from={Math.round(voDelay * fps)} layout="none" premountFor={fps}>
+                    <Audio src={staticFile(`vo/${beat.vo}`)} />
+                  </Sequence>
+                ) : null}
+                {showCaptions && beat.script ? (
+                  <Captions beat={beat} startSec={speechStart} durationSec={speechDuration} />
+                ) : null}
               </AbsoluteFill>
             ) : (
               <Placeholder beat={beat} />
             )}
             {beat.id === "beat10" ? (
-              <Sequence from={Math.round(5 * fps)} layout="none" premountFor={fps}>
+              <Sequence from={Math.round(END_CARD_AT * fps)} layout="none" premountFor={fps}>
                 <EndCard />
               </Sequence>
             ) : null}
