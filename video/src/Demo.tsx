@@ -10,6 +10,10 @@ import {
 } from "remotion";
 import { Audio, Video } from "@remotion/media";
 import { BEATS, END_CARD_AT, FPS, type Beat } from "./beats";
+import captionsData from "./captions.json";
+
+type CaptionSpan = { text: string; from: number; to: number };
+const CAPTION_SPANS: Record<string, CaptionSpan[]> = captionsData;
 
 const BG = "#0b1220";
 const TEXT = "#e6edf3";
@@ -92,19 +96,23 @@ const Captions: React.FC<{ beat: Beat; startSec: number; durationSec: number }> 
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const sentences = beat.script
-    .split(/(?<=[.!?])\s+/)
-    .map((s) => s.trim())
-    .filter(Boolean);
-  const totalWords = sentences.reduce((n, s) => n + s.split(/\s+/).length, 0);
-  if (totalWords === 0) return null;
-  let cursor = startSec;
-  const spans = sentences.map((s) => {
-    const share = (s.split(/\s+/).length / totalWords) * durationSec;
-    const span = { text: s, from: cursor, to: cursor + share };
-    cursor += share;
-    return span;
-  });
+  // Word-aligned spans from the recorded audio (whisper.cpp); proportional fallback.
+  let spans: CaptionSpan[] | undefined = CAPTION_SPANS[beat.id];
+  if (!spans || spans.length === 0) {
+    const sentences = beat.script
+      .split(/(?<=[.!?])\s+/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const totalWords = sentences.reduce((n, s) => n + s.split(/\s+/).length, 0);
+    if (totalWords === 0) return null;
+    let cursor = startSec;
+    spans = sentences.map((s) => {
+      const share = (s.split(/\s+/).length / totalWords) * durationSec;
+      const span = { text: s, from: cursor, to: cursor + share };
+      cursor += share;
+      return span;
+    });
+  }
   const t = frame / fps;
   const active = spans.find((s) => t >= s.from && t < s.to);
   if (!active) return null;
